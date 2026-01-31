@@ -48,6 +48,8 @@ pub struct AccessoryData {
     pub bald_radius: f32,
     pub bald_clip_face: bool,
 
+    pub use_renderfix: bool,
+
     pub material_slot_users: HashMap<(usize, usize), usize>,
     pub material_slots: [Color; 8],
 }
@@ -121,6 +123,7 @@ impl AccessoryData {
                 AccessoryType::Generic1 => "generic1",
                 AccessoryType::Generic2 => "generic2",
             },
+            "renderfix": self.use_renderfix,
             "bald_dont_hide_parts": self.bald_dont_hide_parts,
             "hide_parts": self.hide_parts,
             "disable_jiggle": self.disable_jiggle,
@@ -249,6 +252,12 @@ impl AccessoryData {
         let mut bald_center = BALD_DEFAULT_CENTER;
         let mut bald_radius = BALD_DEFAULT_RADIUS;
         let mut bald_clip_face = BALD_DEFAULT_CLIP_FACE;
+
+        let mut use_renderfix = false;
+
+        if let Some(b) = document["renderfix"].as_bool() {
+            use_renderfix = b;
+        }
 
         let bald_mode = if let Some(arr) = document["bald_mode"].as_array() {
             if arr.len() != 3 {
@@ -424,6 +433,7 @@ impl AccessoryData {
                 accessory_type,
                 hide_parts,
                 disable_jiggle,
+                use_renderfix,
                 bald_mode: bald_mode,
                 bald_dont_hide_parts,
                 bald_preset_sides: bald_preset_sides,

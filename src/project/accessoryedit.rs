@@ -46,6 +46,8 @@ pub struct AccessoryEditProject {
     bald_radius: f32,
     bald_clip_face: bool,
 
+    use_renderfix: bool,
+
     material_highlight_node_select: Option<usize>,
     material_highlight_material_select: Option<usize>,
     material_backup_color: HashMap<(usize, usize), Color>,
@@ -145,6 +147,15 @@ impl Project for AccessoryEditProject {
         ui.collapsing("Chao Preview", |ui| {
             self.chao_draw.chao_preview_edit(ui, ctx);
         });
+
+        let use_renderfix = self.use_renderfix;
+        ui.add(egui::Checkbox::new(
+            &mut self.use_renderfix,
+            "Supports Render Fix",
+        ));
+        if use_renderfix != self.use_renderfix {
+            self.check_update();
+        }
 
         let disable_preview = self.disable_accessory_preview;
         ui.add(egui::Checkbox::new(
@@ -741,6 +752,7 @@ impl AccessoryEditProject {
             object: self.object.as_ref().unwrap().clone(),
             texlist: self.texlist.as_ref().unwrap().clone(),
             accessory_type: self.accessory_type.clone(),
+            use_renderfix: self.use_renderfix,
             hide_parts: self.hide_parts.clone(),
             disable_jiggle: self.disable_jiggle,
             bald_mode: self.bald_mode.clone(),
@@ -805,6 +817,8 @@ impl AccessoryEditProject {
                 BALD_DEFAULT_INFLUENCE,
             ),
             bald_radius: BALD_DEFAULT_RADIUS,
+
+            use_renderfix: true,
 
             selected_slot: 0,
             material_slot_users: HashMap::new(),

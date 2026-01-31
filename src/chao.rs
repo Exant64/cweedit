@@ -370,6 +370,8 @@ impl Chao {
         device: &wgpu::Device,
         ninja_state: &Rc<RefCell<NinjaState>>,
     ) {
+        let prev_rf_mode = ninja_state.borrow().get_renderfix();
+
         let mut chao_draw = ChaoDraw {
             node_index: 0,
             slope_ang: self.chao_face.get_eyelid_slope_ang(),
@@ -380,7 +382,6 @@ impl Chao {
         };
         chao_draw.node_index = 0;
 
-        let prev_rf_mode = ninja_state.borrow().get_renderfix();
         ninja_state.borrow_mut().set_renderfix(false);
         chao_draw.draw_chao(
             &self.chao_param,
@@ -393,9 +394,10 @@ impl Chao {
             &self.accessory,
         );
 
-        ninja_state.borrow_mut().set_renderfix(prev_rf_mode);
 
         if let Some(accessory) = &mut self.accessory {
+            ninja_state.borrow_mut().set_renderfix(prev_rf_mode || accessory.use_renderfix);
+            
             match accessory.accessory_type {
                 AccessoryType::Head | AccessoryType::Face => {
                     ninja_state
@@ -434,6 +436,8 @@ impl Chao {
                 }
             }
         }
+
+        ninja_state.borrow_mut().set_renderfix(prev_rf_mode);
     }
 
     pub fn render(
