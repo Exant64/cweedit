@@ -505,7 +505,6 @@ impl Project for AccessoryEditProject {
                                         PolyChunk::Material {
                                             source_alpha: _,
                                             destination_alpha: _,
-                                            specular_exponent: _,
                                             diffuse: _,
                                             ambient: _,
                                             specular: _,
@@ -572,7 +571,6 @@ impl Project for AccessoryEditProject {
                                                 PolyChunk::Material {
                                                     source_alpha: _,
                                                     destination_alpha: _,
-                                                    specular_exponent: _,
                                                     diffuse: _,
                                                     ambient: _,
                                                     specular: _,
@@ -666,7 +664,6 @@ impl AccessoryEditProject {
                             PolyChunk::Material {
                                 source_alpha: _,
                                 destination_alpha: _,
-                                specular_exponent: _,
                                 diffuse,
                                 ambient: _,
                                 specular: _,

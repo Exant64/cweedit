@@ -256,7 +256,6 @@ pub enum PolyChunk {
     Material {
         source_alpha: AlphaInstruction,
         destination_alpha: AlphaInstruction,
-        specular_exponent: u8,
         diffuse: Option<Color>,
         ambient: Option<Color>,
         specular: Option<Color>,
@@ -353,7 +352,6 @@ impl PolyChunk {
                 Ok(Some(PolyChunk::Material {
                     source_alpha: AlphaInstruction::try_from((plist_flags >> 3) & 7).unwrap(),
                     destination_alpha: AlphaInstruction::try_from(plist_flags & 7).unwrap(),
-                    specular_exponent: 0,
                     diffuse,
                     ambient,
                     specular,

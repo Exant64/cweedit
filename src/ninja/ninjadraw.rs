@@ -46,6 +46,14 @@ struct NinjaUniformEntry {
     bald_center: [f32; 3],
     bald_radius: f32,
     bald_clip_face: i32,
+
+    // rf-only for now
+    ignore_light: i32,
+    ignore_ambient: i32,
+    ignore_specular: i32,
+    ambient_color: [f32; 3],
+    specular_exponent: f32,
+    specular_color: [f32; 3]
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -56,6 +64,7 @@ struct NinjaSampler {
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct NinjaPipeline {
+    use_renderfix: bool,
     use_palette: bool,
     use_texture: bool,
     use_alpha: bool,
@@ -97,6 +106,7 @@ pub struct NinjaDrawState {
     swapchain_format: wgpu::ColorTargetState,
 
     regular_shader: wgpu::ShaderModule,
+    renderfix_shader: wgpu::ShaderModule,
     palette_shader: wgpu::ShaderModule,
 
     placeholder_tex: wgpu::TextureView,
@@ -272,7 +282,14 @@ impl NinjaDrawState {
             }];
 
             let (shader, pipeline_layout) = if !pipeline_settings.use_palette {
-                (&self.regular_shader, &self.regular_pipeline_layout)
+                (
+                    if !pipeline_settings.use_renderfix {
+                        &self.regular_shader
+                    } else {
+                        &self.renderfix_shader
+                    },
+                    &self.regular_pipeline_layout,
+                )
             } else {
                 (&self.palette_shader, &self.palette_pipeline_layout)
             };
@@ -419,6 +436,8 @@ pub struct NinjaState {
     pub matrix_stack: NinjaMatrixStack,
     palette_colors: [Color; 48],
 
+    use_renderfix: bool,
+
     chao_alpha_mode: bool,
 
     chao_mode: u32,
@@ -441,6 +460,14 @@ pub struct NinjaState {
 }
 
 impl NinjaState {
+    pub fn get_renderfix(&self) -> bool {
+        self.use_renderfix
+    }
+
+    pub fn set_renderfix(&mut self, rf: bool) {
+        self.use_renderfix = rf;
+    }
+
     pub fn disable_bald(&mut self) {
         self.use_bald = 0;
     }
@@ -492,10 +519,16 @@ impl NinjaState {
             usage: wgpu::BufferUsages::VERTEX | wgpu::BufferUsages::COPY_DST,
         });
 
-        // Load the shaders from disk
         let regular_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
             label: None,
             source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!("../shader.wgsl"))),
+        });
+
+        let renderfix_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
+            label: None,
+            source: wgpu::ShaderSource::Wgsl(Cow::Borrowed(include_str!(
+                "../renderfix_shader.wgsl"
+            ))),
         });
 
         let palette_shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
@@ -686,6 +719,7 @@ impl NinjaState {
             projection_matrix_buffer,
 
             regular_shader,
+            renderfix_shader,
             palette_shader,
 
             sampler_cache: HashMap::new(),
@@ -716,6 +750,8 @@ impl NinjaState {
                 };
                 32768
             ],
+
+            use_renderfix: true,
 
             chao_alpha_mode: false,
             chao_mode: 0,
@@ -776,6 +812,9 @@ impl NinjaState {
                     self.blend_src = *source_alpha;
                     self.blend_dst = *destination_alpha;
                 }
+                PolyChunk::BitsSpecularExponent(v) => {
+                    uniform_entry.specular_exponent = *v as f32;
+                }
                 PolyChunk::TinyTextureID {
                     mipmap_d_adjust: _,
                     clamp_u,
@@ -830,13 +869,26 @@ impl NinjaState {
                 PolyChunk::Material {
                     source_alpha,
                     destination_alpha,
-                    specular_exponent: _,
                     diffuse,
-                    ambient: _,
-                    specular: _,
+                    ambient,
+                    specular,
                 } => {
                     self.blend_src = *source_alpha;
                     self.blend_dst = *destination_alpha;
+
+                    if let Some(ambient_color) = ambient {
+                        uniform_entry.ambient_color[0] = ambient_color.r as f32 / 255.0;
+                        uniform_entry.ambient_color[1] = ambient_color.g as f32 / 255.0;
+                        uniform_entry.ambient_color[2] = ambient_color.b as f32 / 255.0;
+                    }
+
+                    if let Some(specular_color) = specular {
+                        uniform_entry.specular_color[0] = specular_color.r as f32 / 255.0;
+                        uniform_entry.specular_color[1] = specular_color.g as f32 / 255.0;
+                        uniform_entry.specular_color[2] = specular_color.b as f32 / 255.0;
+
+                        uniform_entry.specular_exponent = specular_color.a as f32;
+                    }
 
                     if let Some(diff_color) = diffuse {
                         uniform_entry.diffuse_color[0] = diff_color.r as f32 / 255.0;
@@ -890,6 +942,10 @@ impl NinjaState {
                     pipeline_settings.blend_alpha.dst_factor = self.blend_dst.into();
 
                     pipeline_settings.use_texture = strips.iter().any(|str| str.uvs.is_some());
+
+                    uniform_entry.ignore_light = (flags & 1).into();
+                    uniform_entry.ignore_specular = (flags & 2).into();
+                    uniform_entry.ignore_ambient = (flags & 4).into();
 
                     pipeline_settings.use_alpha = (flags & 8) != 0;
                     pipeline_settings.double_sided = (flags & 16) != 0;
@@ -1050,6 +1106,7 @@ impl NinjaState {
         };
 
         let mut pipeline_settings = NinjaPipeline {
+            use_renderfix: self.use_renderfix,
             use_palette: false,
             use_alpha: false,
             use_texture: false,
@@ -1097,6 +1154,12 @@ impl NinjaState {
             bald_radius: self.bald_radius,
             bald_clip_face: self.bald_clip_face,
             pad: 0.0,
+            ignore_light: 0,
+            ignore_ambient: 0,
+            ignore_specular: 0,
+            ambient_color: [127.0 / 255.0, 127.0 / 255.0, 127.0 / 255.0],
+            specular_exponent: 11.0,
+            specular_color: [1.0, 1.0, 1.0]
         };
 
         self.parse_poly_chunk(

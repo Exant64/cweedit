@@ -365,7 +365,6 @@ impl ChaoShape {
         if let PolyChunk::Material {
             source_alpha: _,
             destination_alpha: _,
-            specular_exponent: _,
             diffuse,
             ambient: _,
             specular: _,
@@ -468,7 +467,6 @@ impl ChaoShape {
                         if let PolyChunk::Material {
                             source_alpha: _,
                             destination_alpha: _,
-                            specular_exponent: _,
                             diffuse,
                             ambient: _,
                             specular: _,
@@ -477,7 +475,6 @@ impl ChaoShape {
                             let PolyChunk::Material {
                                 source_alpha: _,
                                 destination_alpha: _,
-                                specular_exponent: _,
                                 diffuse: Some(zero_diffuse),
                                 ambient: _,
                                 specular: _,
@@ -488,7 +485,6 @@ impl ChaoShape {
                             let PolyChunk::Material {
                                 source_alpha: _,
                                 destination_alpha: _,
-                                specular_exponent: _,
                                 diffuse: Some(normal_diffuse),
                                 ambient: _,
                                 specular: _,
@@ -499,7 +495,6 @@ impl ChaoShape {
                             let PolyChunk::Material {
                                 source_alpha: _,
                                 destination_alpha: _,
-                                specular_exponent: _,
                                 diffuse: Some(horizontal_diffuse),
                                 ambient: _,
                                 specular: _,
@@ -510,7 +505,6 @@ impl ChaoShape {
                             let PolyChunk::Material {
                                 source_alpha: _,
                                 destination_alpha: _,
-                                specular_exponent: _,
                                 diffuse: Some(vertical_diffuse),
                                 ambient: _,
                                 specular: _,
@@ -818,7 +812,6 @@ impl ChaoShape {
                         if let PolyChunk::Material {
                             source_alpha: _,
                             destination_alpha: _,
-                            specular_exponent: _,
                             diffuse,
                             ambient: _,
                             specular: _,

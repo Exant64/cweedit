@@ -379,6 +379,9 @@ impl Chao {
             node_matrices: [Mat4::IDENTITY; 40],
         };
         chao_draw.node_index = 0;
+
+        let prev_rf_mode = ninja_state.borrow().get_renderfix();
+        ninja_state.borrow_mut().set_renderfix(false);
         chao_draw.draw_chao(
             &self.chao_param,
             device,
@@ -389,6 +392,8 @@ impl Chao {
             motion,
             &self.accessory,
         );
+
+        ninja_state.borrow_mut().set_renderfix(prev_rf_mode);
 
         if let Some(accessory) = &mut self.accessory {
             match accessory.accessory_type {
