@@ -170,7 +170,10 @@ impl Project for AccessoryEditProject {
 
         if self.use_renderfix {
             ui.indent("indented_rf_preview", |ui| {
-                if ui.checkbox(&mut self.renderfix_preview, "Render Fix Preview").changed() {
+                if ui
+                    .checkbox(&mut self.renderfix_preview, "Render Fix Preview")
+                    .changed()
+                {
                     self.check_update();
                 }
             });
@@ -598,10 +601,10 @@ impl Project for AccessoryEditProject {
 
         ui.collapsing("Colors", |ui| {
             tooltip_helper(
-                ui, 
+                ui,
                 |ui| {
                     ui.label("Information");
-                }, 
+                },
                 |ui| {
                     ui.label("The Color Slot system lets players change the colors of accessories. In this sub-menu you can select a node and any of it's materials, and assign a color slot to it.\n\
                     You can make multiple materials share the same slot. The slots also have a default color, you can use the \"Assign and Copy Color\" to set the default color to the current material, but you can also just change it by clicking on the color itself.\n\
