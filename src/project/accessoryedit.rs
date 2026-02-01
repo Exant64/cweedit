@@ -48,6 +48,7 @@ pub struct AccessoryEditProject {
     bald_clip_face: bool,
 
     use_renderfix: bool,
+    renderfix_preview: bool,
 
     material_highlight_node_select: Option<usize>,
     material_highlight_material_select: Option<usize>,
@@ -165,6 +166,14 @@ impl Project for AccessoryEditProject {
 
         if use_renderfix != self.use_renderfix {
             self.check_update();
+        }
+
+        if self.use_renderfix {
+            ui.indent("indented_rf_preview", |ui| {
+                if ui.checkbox(&mut self.renderfix_preview, "Render Fix Preview").changed() {
+                    self.check_update();
+                }
+            });
         }
 
         let disable_preview = self.disable_accessory_preview;
@@ -897,6 +906,7 @@ impl AccessoryEditProject {
             texlist: self.texlist.as_ref().unwrap().clone(),
             accessory_type: self.accessory_type.clone(),
             use_renderfix: self.use_renderfix,
+            renderfix_preview: self.renderfix_preview,
             hide_parts: self.hide_parts.clone(),
             disable_jiggle: self.disable_jiggle,
             bald_mode: self.bald_mode.clone(),
@@ -963,6 +973,7 @@ impl AccessoryEditProject {
             bald_radius: BALD_DEFAULT_RADIUS,
 
             use_renderfix: true,
+            renderfix_preview: true,
 
             selected_slot: 0,
             material_slot_users: HashMap::new(),

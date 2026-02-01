@@ -104,13 +104,6 @@ impl eframe::App for GameState {
                         ui.close_menu();
                     }
                 });
-
-                ui.menu_button("Settings", |ui| {
-                    let mut use_rf = self.ninja_state.borrow().get_renderfix();
-                    if ui.checkbox(&mut use_rf, "Render Fix preview").changed() {
-                        self.ninja_state.borrow_mut().set_renderfix(use_rf);
-                    }
-                });
             })
         });
         egui::SidePanel::left("side_panel").show_animated(ctx, true, |ui| {

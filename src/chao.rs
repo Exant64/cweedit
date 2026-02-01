@@ -397,7 +397,7 @@ impl Chao {
         if let Some(accessory) = &mut self.accessory {
             ninja_state
                 .borrow_mut()
-                .set_renderfix(prev_rf_mode || accessory.use_renderfix);
+                .set_renderfix(accessory.check_renderfix_render());
 
             match accessory.accessory_type {
                 AccessoryType::Head | AccessoryType::Face => {

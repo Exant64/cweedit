@@ -49,6 +49,7 @@ pub struct AccessoryData {
     pub bald_clip_face: bool,
 
     pub use_renderfix: bool,
+    pub renderfix_preview: bool,
 
     pub material_slot_users: HashMap<(usize, usize), usize>,
     pub material_slots: [Color; 8],
@@ -57,6 +58,10 @@ pub struct AccessoryData {
 impl AccessoryData {
     pub fn check_if_generic_appropriate(&self) -> bool {
         self.object.get_node_count() == 40
+    }
+
+    pub fn check_renderfix_render(&self) -> bool {
+        self.renderfix_preview && self.use_renderfix
     }
 
     fn safety_check_before_save(&self, json_path: &PathBuf) -> std::result::Result<&str, String> {
@@ -434,6 +439,7 @@ impl AccessoryData {
                 hide_parts,
                 disable_jiggle,
                 use_renderfix,
+                renderfix_preview: true,
                 bald_mode: bald_mode,
                 bald_dont_hide_parts,
                 bald_preset_sides: bald_preset_sides,
