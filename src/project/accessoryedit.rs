@@ -146,9 +146,38 @@ impl Project for AccessoryEditProject {
     }
 
     fn side_panel(&mut self, ctx: &egui::Context, frame: &eframe::Frame, ui: &mut egui::Ui) {
+        ui.heading("Preview Settings");
         ui.collapsing("Chao Preview", |ui| {
             self.chao_draw.chao_preview_edit(ui, ctx);
         });
+
+        let disable_preview = self.disable_accessory_preview;
+        tooltip_helper(
+            ui,
+            |ui| {
+                ui.add(egui::Checkbox::new(
+                    &mut self.disable_accessory_preview,
+                    "Disable Accessory Preview",
+                ));
+            },
+            |ui| {
+                ui.label("Disables showing the accessory on the Chao in the preview panel");
+            },
+        );
+        if disable_preview != self.disable_accessory_preview {
+            self.check_update();
+        }
+
+        if ui
+            .checkbox(&mut self.renderfix_preview, "Render Fix Preview")
+            .changed()
+        {
+            self.check_update();
+        }
+
+        ui.separator();
+
+        ui.heading("Accessory Settings");
 
         let use_renderfix = self.use_renderfix;
         tooltip_helper(
@@ -165,34 +194,6 @@ impl Project for AccessoryEditProject {
         );
 
         if use_renderfix != self.use_renderfix {
-            self.check_update();
-        }
-
-        if self.use_renderfix {
-            ui.indent("indented_rf_preview", |ui| {
-                if ui
-                    .checkbox(&mut self.renderfix_preview, "Render Fix Preview")
-                    .changed()
-                {
-                    self.check_update();
-                }
-            });
-        }
-
-        let disable_preview = self.disable_accessory_preview;
-        tooltip_helper(
-            ui,
-            |ui| {
-                ui.add(egui::Checkbox::new(
-                    &mut self.disable_accessory_preview,
-                    "Disable Accessory Preview",
-                ));
-            },
-            |ui| {
-                ui.label("Disables showing the accessory on the Chao in the preview panel");
-            },
-        );
-        if disable_preview != self.disable_accessory_preview {
             self.check_update();
         }
 

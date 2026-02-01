@@ -61,7 +61,7 @@ impl AccessoryData {
     }
 
     pub fn check_renderfix_render(&self) -> bool {
-        self.renderfix_preview && self.use_renderfix
+        self.renderfix_preview
     }
 
     fn safety_check_before_save(&self, json_path: &PathBuf) -> std::result::Result<&str, String> {
