@@ -299,7 +299,7 @@ impl PolyChunk {
         const NJD_STRIPOFF_END: u32 = 64 + 12;
         const NJD_ENDOFF: u32 = 255;
 
-        let plist = match plist_type {
+        let plist: Result<Option<PolyChunk>, NinjaParseError> = match plist_type {
             NJD_NULLOFF => Ok(Some(PolyChunk::Null)),
 
             NJD_CB_BA => Ok(Some(PolyChunk::BitsBlendAlpha {
@@ -387,21 +387,20 @@ impl PolyChunk {
         };
 
         let end_list = reader.stream_position().unwrap();
+
         reader.rewind()?;
-        let plist_bytes: Vec<u8> = reader.bytes().into_iter().map(|b| b.unwrap()).collect();
-        let real_bytes = plist_bytes
-            .split_at(plist_start as usize)
-            .1
-            .split_at((end_list - plist_start) as usize)
-            .0;
+
+        let plist_len = (end_list - plist_start) as usize;
+
+        reader.seek(SeekFrom::Start(plist_start))?;
+
+        let mut real_bytes = vec![0u8; plist_len];
+        reader.read_exact(&mut real_bytes)?;
+
         reader.seek(SeekFrom::Start(end_list))?;
-        if plist.is_err() {
-            return Err(plist.err().unwrap());
-        }
-        let x = plist
-            .unwrap()
-            .map(|x| Some((real_bytes.to_vec(), x)))
-            .map(|x| x.unwrap());
-        Ok(x)
+
+        let plist = plist?;
+
+        Ok(plist.map(|x| (real_bytes.clone(), x)))
     }
 }

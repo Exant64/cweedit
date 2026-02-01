@@ -904,7 +904,7 @@ impl NinjaState {
                 } => {
                     let mut vertices = Vec::new();
 
-                    for s in strips.into_iter() {
+                    for s in strips {
                         let len = s.indices.len();
 
                         for i in 0..len {
