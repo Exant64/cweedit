@@ -53,6 +53,10 @@ impl eframe::App for GameState {
                                 Key::S => self.dist -= 40.0 * i.stable_dt,
                                 _ => continue,
                             }
+
+                            if self.dist < 0.0 {
+                                self.dist = 0.0;
+                            }
                         }
                     }
                     _ => continue,
