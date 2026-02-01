@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, str::FromStr};
 
+use egui::Ui;
 use egui_wgpu::RenderState;
 use rfd::MessageDialogResult;
 
@@ -19,7 +20,7 @@ use crate::{
 
 use super::{
     drawable::{chaodraw::ChaoDraw, Drawable},
-    open_file_dialog, Project,
+    open_file_dialog, tooltip_helper, Project,
 };
 
 pub struct AccessoryEditProject {
@@ -149,57 +150,90 @@ impl Project for AccessoryEditProject {
         });
 
         let use_renderfix = self.use_renderfix;
-        ui.add(egui::Checkbox::new(
-            &mut self.use_renderfix,
-            "Supports Render Fix",
-        ));
+        tooltip_helper(
+            ui,
+            |ui| {
+                ui.add(egui::Checkbox::new(
+                    &mut self.use_renderfix,
+                    "Supports Render Fix",
+                ));
+            },
+            |ui| {
+                ui.label("Enables Render Fix \"Normal Draw\" support for the accessory. This is recommended!\nIt enables proper Ambient and Specular material color support (including the exponent for specular values), and proper double-sided lighting.");
+            },
+        );
+
         if use_renderfix != self.use_renderfix {
             self.check_update();
         }
 
         let disable_preview = self.disable_accessory_preview;
-        ui.add(egui::Checkbox::new(
-            &mut self.disable_accessory_preview,
-            "Disable Accessory Preview",
-        ));
+        tooltip_helper(
+            ui,
+            |ui| {
+                ui.add(egui::Checkbox::new(
+                    &mut self.disable_accessory_preview,
+                    "Disable Accessory Preview",
+                ));
+            },
+            |ui| {
+                ui.label("Disables showing the accessory on the Chao in the preview panel");
+            },
+        );
         if disable_preview != self.disable_accessory_preview {
             self.check_update();
         }
 
-        ui.horizontal(|ui| {
-            ui.label(egui::RichText::new("ID: ").color(if self.id.len() < 1 {
-                egui::Color32::from_rgb(255, 50, 50)
-            } else {
-                egui::Color32::from_rgb(50, 255, 50)
-            }));
+        tooltip_helper(
+            ui,
+            |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new("ID: ").color(if self.id.len() < 1 {
+                        egui::Color32::from_rgb(255, 50, 50)
+                    } else {
+                        egui::Color32::from_rgb(50, 255, 50)
+                    }));
 
-            if ui.add(egui::TextEdit::singleline(&mut self.id)).changed() {
-                self.id.truncate(20);
-                if let Some(data) = &mut self.accessory_data {
-                    data.id = self.id.clone();
-                }
-            }
-        });
-
-        if let Some(obj) = &self.object {
-            if ui.button("Generate ID from Object Hash").clicked() {
-                let diag_result = rfd::MessageDialog::new()
-                    .set_buttons(rfd::MessageButtons::YesNo)
-                    .set_title("Generate ID from Object Hash")
-                    .set_description("We only recommend using this if you plan to update/replace accessories in an existing DLL-based accessory mod of yours. If this is a brand new accessory, write a unique ID instead! Are you sure you want to proceed?")
-                    .show();
-
-                if diag_result == MessageDialogResult::Yes {
-                    if let Some(hash) = obj.get_hash() {
-                        let new_id = format!("acc{:x}", hash);
-
-                        self.id = new_id;
+                    if ui.add(egui::TextEdit::singleline(&mut self.id)).changed() {
+                        self.id.truncate(20);
                         if let Some(data) = &mut self.accessory_data {
                             data.id = self.id.clone();
                         }
                     }
-                }
-            }
+                });
+            },
+            |ui| {
+                ui.label("This is a unique identifier for each accessory (max length: 20).\nMake sure this is as unique to your mod as possible, if your accessory is just a hat, don't use the ID \"hat\", name it something more like \"jimsaccmodhat\".");
+            },
+        );
+
+        if let Some(obj) = &self.object {
+            tooltip_helper(
+                ui,
+                |ui| {
+                    if ui.button("Generate ID from Object Hash").clicked() {
+                        let diag_result = rfd::MessageDialog::new()
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .set_title("Generate ID from Object Hash")
+                        .set_description("We only recommend using this if you plan to update/replace accessories in an existing DLL-based accessory mod of yours. If this is a brand new accessory, write a unique ID instead! Are you sure you want to proceed?")
+                        .show();
+
+                        if diag_result == MessageDialogResult::Yes {
+                            if let Some(hash) = obj.get_hash() {
+                                let new_id = format!("acc{:x}", hash);
+
+                                self.id = new_id;
+                                if let Some(data) = &mut self.accessory_data {
+                                    data.id = self.id.clone();
+                                }
+                            }
+                        }
+                    }
+                },
+                |ui| {
+                    ui.label("This is only intended for old DLL-based accessory mods being remade in the editor. If this is a brand new accessory, write a unique ID instead!");
+                },
+            );
         }
 
         ui.horizontal(|ui| {
@@ -276,39 +310,63 @@ impl Project for AccessoryEditProject {
         });
 
         let prev_accessory_type = self.accessory_type.clone();
-        egui::ComboBox::from_label("Accessory Type")
-            .selected_text(format!("{:?}", self.accessory_type))
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut self.accessory_type, AccessoryType::Head, "Head");
-                ui.selectable_value(&mut self.accessory_type, AccessoryType::Face, "Face");
-                if let Some(accessory) = &mut self.accessory_data {
-                    if accessory.check_if_generic_appropriate() {
-                        ui.selectable_value(
-                            &mut self.accessory_type,
-                            AccessoryType::Generic1,
-                            "Generic1",
-                        );
-                        ui.selectable_value(
-                            &mut self.accessory_type,
-                            AccessoryType::Generic2,
-                            "Generic2",
-                        );
-                    }
-                }
-            });
+        tooltip_helper(
+            ui,
+            |ui| {
+                egui::ComboBox::from_label("Accessory Type")
+                    .selected_text(format!("{:?}", self.accessory_type))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.accessory_type, AccessoryType::Head, "Head");
+                        ui.selectable_value(&mut self.accessory_type, AccessoryType::Face, "Face");
+                        if let Some(accessory) = &mut self.accessory_data {
+                            if accessory.check_if_generic_appropriate() {
+                                ui.selectable_value(
+                                    &mut self.accessory_type,
+                                    AccessoryType::Generic1,
+                                    "Generic1",
+                                );
+                                ui.selectable_value(
+                                    &mut self.accessory_type,
+                                    AccessoryType::Generic2,
+                                    "Generic2",
+                                );
+                            }
+                        }
+                    });
+            },
+            |ui| {
+                ui.label("This specifies the slot the Chao will put the accessory in.\nFor Head and Face type, the accessory model gets parented to the chao's head (node 16).\nFor Generic types, the Chao model behaves like a rig the accessory binds to.");
+                ui.with_layout(egui::Layout::left_to_right(egui::Align::Center), |ui| {
+                    ui.spacing_mut().item_spacing.x = 0.0;
+                    ui.label("Visit the ");
+                    ui.hyperlink_to("Chao World modding documentation", "https://nostalgianinja.github.io/ChaoModding_Docs/AccessoryModding/#body-accessories");
+                    ui.label(" to learn more");
+                });
+            },
+        );
 
         if prev_accessory_type != self.accessory_type {
             self.check_update();
         }
 
         let bald_mode_prev = self.bald_mode.clone();
-        egui::ComboBox::from_label("Bald Mode")
-            .selected_text(format!("{:?}", self.bald_mode))
-            .show_ui(ui, |ui| {
-                ui.selectable_value(&mut self.bald_mode, BaldMode::None, "None");
-                ui.selectable_value(&mut self.bald_mode, BaldMode::Presets, "Presets");
-                ui.selectable_value(&mut self.bald_mode, BaldMode::Custom, "Custom");
-            });
+        tooltip_helper(
+            ui,
+            |ui| {
+                egui::ComboBox::from_label("Bald Mode")
+                    .selected_text(format!("{:?}", self.bald_mode))
+                    .show_ui(ui, |ui| {
+                        ui.selectable_value(&mut self.bald_mode, BaldMode::None, "None");
+                        ui.selectable_value(&mut self.bald_mode, BaldMode::Presets, "Presets");
+                        ui.selectable_value(&mut self.bald_mode, BaldMode::Custom, "Custom");
+                    });
+            },
+            |ui| {
+                ui.label("This option flattens the Chao's head to prevent clipping issues with evolution head shapes. It also hides the other Chao head parts (ex. the \"bulbs\" on Hero Chao) by default (this is configurable).\n\
+                The \"Presets\" mode has a preset configuration that you can toggle for each axis (basically letting you shrink the chao's head on each axis).\n\
+                The \"Custom\" mode allows you to configure the parameters of the \"shrinking\" more precisely. Check the help tooltips on the parameters for more info on these.");
+            },
+        );
 
         if bald_mode_prev != self.bald_mode {
             self.check_update();
@@ -336,36 +394,96 @@ impl Project for AccessoryEditProject {
                         "Don't hide head parts",
                     ));
 
-                    ui.label("Center");
+                    tooltip_helper(
+                        ui,
+                        |ui| {
+                            ui.label("Information");
+                        },
+                        |ui| {
+                            ui.label(
+                                "The \"bald\" system works by morphing the Chao head vertices to the nearest point on a sphere.\n\
+                                You can configure the radius and the center of this sphere, and also the \"strength\" of the morphing on each axis.",
+                            );
+                        },
+                    );
+
+                    tooltip_helper(
+                        ui,
+                        |ui| {
+                            ui.label("Center");
+                        },
+                        |ui| {
+                            ui.label(
+                                "The center of the sphere that the Chao head gets fitted into.",
+                            );
+                        },
+                    );
+
                     ui.horizontal(|ui| {
                         ui.add(egui::Slider::new(&mut self.bald_center.x, -2.0..=2.0));
                         ui.add(egui::Slider::new(&mut self.bald_center.y, -2.0..=2.0));
                         ui.add(egui::Slider::new(&mut self.bald_center.z, -2.0..=2.0));
                     });
 
-                    ui.label("Influence");
+                    tooltip_helper(
+                        ui,
+                        |ui| {
+                            ui.label("Influence");
+                        },
+                        |ui| {
+                            ui.label("The strength of the \"fitting\" on each axis.");
+                        },
+                    );
+
                     ui.horizontal(|ui| {
                         ui.add(egui::Slider::new(&mut self.bald_influence.x, 0.0..=1.0));
                         ui.add(egui::Slider::new(&mut self.bald_influence.y, 0.0..=1.0));
                         ui.add(egui::Slider::new(&mut self.bald_influence.z, 0.0..=1.0));
                     });
 
-                    ui.label("Radius");
+                    tooltip_helper(
+                        ui,
+                        |ui| {
+                            ui.label("Radius");
+                        },
+                        |ui| {
+                            ui.label(
+                                "The radius of the sphere that the Chao head gets fitted into.",
+                            );
+                        },
+                    );
+
                     ui.add(egui::Slider::new(&mut self.bald_radius, 0.0..=10.0));
 
-                    ui.add(egui::Checkbox::new(&mut self.bald_clip_face, "Clip Face"));
+                    tooltip_helper(
+                        ui,
+                        |ui| {
+                            ui.add(egui::Checkbox::new(&mut self.bald_clip_face, "Clip Face"));
+                        },
+                        |ui| {
+                            ui.label("Enabling this leaves the face unaffected by the fitting.");
+                        },
+                    );
 
-                    if ui.button("Reset to Default").clicked() {
-                        self.bald_center = BALD_DEFAULT_CENTER;
-                        self.bald_clip_face = BALD_DEFAULT_CLIP_FACE;
-                        self.bald_influence = glam::vec3(
-                            BALD_DEFAULT_INFLUENCE,
-                            BALD_DEFAULT_INFLUENCE,
-                            BALD_DEFAULT_INFLUENCE,
-                        );
-                        self.bald_radius = BALD_DEFAULT_RADIUS;
-                        self.bald_dont_hide_hparts = false;
-                    }
+                    tooltip_helper(
+                        ui,
+                        |ui| {
+                            if ui.button("Reset to Default").clicked() {
+                                self.bald_center = BALD_DEFAULT_CENTER;
+                                self.bald_clip_face = BALD_DEFAULT_CLIP_FACE;
+                                self.bald_influence = glam::vec3(
+                                    BALD_DEFAULT_INFLUENCE,
+                                    BALD_DEFAULT_INFLUENCE,
+                                    BALD_DEFAULT_INFLUENCE,
+                                );
+                                self.bald_radius = BALD_DEFAULT_RADIUS;
+                                self.bald_dont_hide_hparts = false;
+                            }
+                        },
+                        |ui| {
+                            ui.label("Resets the parameters to default. (these are the same values that the \"Presets\" mode uses)");
+                        },
+                    );
 
                     self.check_update();
                 });
@@ -422,6 +540,16 @@ impl Project for AccessoryEditProject {
         });
 
         ui.collapsing("Hide Parts", |ui| {
+            tooltip_helper(
+                ui,
+                |ui| {
+                    ui.label("Information");
+                },
+                |ui| {
+                    ui.label("This sub-menu lets you hide specific Chao nodes (indices 0 through 39). The list also shows the ones automatically hidden by Bald settings (if enabled).");
+                },
+            );
+
             let mut num_str = self.hide_parts_selected_num.to_string();
             ui.horizontal(|ui| {
                 ui.label("Node: ");
@@ -460,20 +588,37 @@ impl Project for AccessoryEditProject {
         });
 
         ui.collapsing("Colors", |ui| {
+            tooltip_helper(
+                ui, 
+                |ui| {
+                    ui.label("Information");
+                }, 
+                |ui| {
+                    ui.label("The Color Slot system lets players change the colors of accessories. In this sub-menu you can select a node and any of it's materials, and assign a color slot to it.\n\
+                    You can make multiple materials share the same slot. The slots also have a default color, you can use the \"Assign and Copy Color\" to set the default color to the current material, but you can also just change it by clicking on the color itself.\n\
+                    The \"Preview Selected Material\" option makes the currently selected material slowly blink in a red color, letting you see which part of the model you currently have selected.");
+                }
+            );
+
             ui.add(egui::Checkbox::new(
                 &mut self.material_flash,
                 "Preview Selected Material",
             ));
 
             let last_select = self.material_highlight_node_select;
-            egui::ComboBox::from_label("Node Select")
-                .selected_text(if self.material_highlight_node_select.is_none() {
-                    "None".to_string()
-                } else {
-                    format!("{}", self.material_highlight_node_select.unwrap())
-                })
-                .show_ui(ui, |ui| {
-                    if let Some(obj) = &mut self.object {
+            if let Some(obj) = &mut self.object {
+                egui::ComboBox::from_label("Node Select")
+                    .selected_text(if let Some(index) = self.material_highlight_node_select {
+                        let mut counter = 0;
+                        if let Some(selected) = obj.get_node(&mut counter, index) {
+                            format!("{} ({})", selected.name, index)
+                        } else {
+                            "Invalid index".into()
+                        }
+                    } else {
+                        "None".into()
+                    })
+                    .show_ui(ui, |ui| {
                         let node_count = obj.get_node_count();
 
                         for i in 0..node_count {
@@ -483,14 +628,13 @@ impl Project for AccessoryEditProject {
                                     ui.selectable_value(
                                         &mut self.material_highlight_node_select,
                                         Some(i),
-                                        format!("{}", i),
+                                        format!("{} ({})", node.name, i),
                                     );
                                 }
                             }
                         }
-                    }
-                });
-
+                    });
+            }
             if last_select != self.material_highlight_node_select {
                 self.material_highlight_material_select = None;
             }

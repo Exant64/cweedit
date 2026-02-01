@@ -394,10 +394,11 @@ impl Chao {
             &self.accessory,
         );
 
-
         if let Some(accessory) = &mut self.accessory {
-            ninja_state.borrow_mut().set_renderfix(prev_rf_mode || accessory.use_renderfix);
-            
+            ninja_state
+                .borrow_mut()
+                .set_renderfix(prev_rf_mode || accessory.use_renderfix);
+
             match accessory.accessory_type {
                 AccessoryType::Head | AccessoryType::Face => {
                     ninja_state

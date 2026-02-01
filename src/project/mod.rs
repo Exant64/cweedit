@@ -4,6 +4,7 @@ pub mod drawable;
 use std::path::PathBuf;
 
 use drawable::Drawable;
+use egui::{Color32, RichText, Ui};
 use rfd::FileDialog;
 
 pub fn show_error(text: impl Into<String>) {
@@ -12,6 +13,23 @@ pub fn show_error(text: impl Into<String>) {
         .set_description(text)
         .set_level(rfd::MessageLevel::Error)
         .show();
+}
+
+// the inspiration from this is from encounter's "objdiff" project (similarly made in egui, but not directly using his code)
+// thanks!
+pub fn tooltip_helper(
+    ui: &mut Ui,
+    ui_element: impl FnOnce(&mut Ui),
+    tooltip: impl FnOnce(&mut Ui),
+) {
+    ui.horizontal(|ui| {
+        ui_element(ui);
+
+        let resp = ui.label(RichText::new("\u{2139}").color(Color32::CYAN));
+        if resp.hovered() {
+            resp.show_tooltip_ui(tooltip);
+        }
+    });
 }
 
 pub fn open_file_dialog(file_name: &'static str, extensions: &[&'static str]) -> Option<PathBuf> {

@@ -53,7 +53,7 @@ struct NinjaUniformEntry {
     ignore_specular: i32,
     ambient_color: [f32; 3],
     specular_exponent: f32,
-    specular_color: [f32; 3]
+    specular_color: [f32; 3],
 }
 
 #[derive(PartialEq, Eq, Hash, Clone)]
@@ -1159,7 +1159,7 @@ impl NinjaState {
             ignore_specular: 0,
             ambient_color: [127.0 / 255.0, 127.0 / 255.0, 127.0 / 255.0],
             specular_exponent: 11.0,
-            specular_color: [1.0, 1.0, 1.0]
+            specular_color: [1.0, 1.0, 1.0],
         };
 
         self.parse_poly_chunk(
