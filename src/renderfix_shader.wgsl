@@ -96,9 +96,10 @@ fn fs_main(vertex: VertexOutput, @builtin(front_facing) is_front: bool) -> @loca
         return uniformData.diffuse_color * diffuse_tex_color;
     }
 
-    let diffuse = vec4<f32>(vec3<f32>(intensity), 1.0) * uniformData.diffuse_color;
-    let ambient = vec4<f32>(f32(1 - uniformData.ignore_ambient) * LIGHT_AMBIENT * uniformData.ambient_color, 0);
+    let ambient = f32(1 - uniformData.ignore_ambient) * LIGHT_AMBIENT * uniformData.ambient_color;
     let specular_intensity = pow(intensity, uniformData.specular_exponent);
 
-    return (ambient + diffuse) * diffuse_tex_color + vec4<f32>(f32(1 - uniformData.ignore_specular) * specular_intensity * uniformData.specular_color, 0);
+    let color = min(ambient + vec3<f32>(intensity), vec3<f32>(1.0)) * uniformData.diffuse_color.rgb;
+
+    return clamp(vec4<f32>(color, uniformData.diffuse_color.a), vec4<f32>(0), vec4<f32>(1)) * diffuse_tex_color + vec4<f32>(f32(1 - uniformData.ignore_specular) * specular_intensity * uniformData.specular_color, 0);
 }
