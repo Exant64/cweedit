@@ -44,7 +44,6 @@ var<uniform> uniformData: UniformData;
 @binding(1)
 var<uniform> projectionMatrix: mat4x4<f32>;
 
-const LIGHT_DIRECTION = vec3<f32>(0.0, 1.0, 0.0);
 const LIGHT_INTENSITY = 1.0;
 const LIGHT_AMBIENT = 0.3;
 
@@ -62,7 +61,7 @@ fn vs_main(
     
     // technically i think it should be -LIGHT_DIRECTION, keeping it like this for now though
     // in real RF this is supposed to support multiple lights but we don't really need that
-    result.intensity = dot(normalize(normal), LIGHT_DIRECTION) * LIGHT_INTENSITY;
+    result.intensity = dot(normalize(normal), uniformData.light_direction) * LIGHT_INTENSITY;
 
     return result;
 }

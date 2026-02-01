@@ -1,6 +1,7 @@
 struct VertexOutput {
     @location(0) normal: vec3<f32>,
     @location(1) tex_coord: vec2<f32>,
+    @location(2) intensity: f32,
     @builtin(position) position: vec4<f32>,
 };
 
@@ -55,6 +56,9 @@ fn vs_main(
     else {
         result.position = projectionMatrix * vec4<f32>(position.xyz, 1.0f);
     }
+
+    result.intensity = dot(normalize(normal), uniformData.light_direction);
+
     return result;
 }
 
@@ -88,7 +92,7 @@ fn fs_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
     let bottom = mix(color_bottom_left, color_bottom_right, f.x);
     let diffuse_tex_color = mix(top, bottom, f.y);
 
-    let diffuse = 0.3 + clamp(dot(normalize(vertex.normal), vec3<f32>(0.0, 1.0, 0.0)), 0.0, 1.0);
+    let diffuse = 0.3 + clamp(vertex.intensity, 0.0, 1.0);
 
     var material_color = uniformData.diffuse_color.rgb;
     var uv = vertex.tex_coord;

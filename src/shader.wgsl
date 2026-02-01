@@ -3,6 +3,7 @@ override use_texture: bool = false;
 struct VertexOutput {
     @location(0) normal: vec3<f32>,
     @location(1) tex_coord: vec2<f32>,
+    @location(2) intensity: f32,
     @builtin(position) position: vec4<f32>,
 };
 
@@ -58,6 +59,8 @@ fn vs_main(
         result.position = projectionMatrix * vec4<f32>(position.xyz, 1.0f);
     }
 
+    result.intensity = dot(normalize(normal), uniformData.light_direction);
+
     return result;
 }
 
@@ -85,7 +88,7 @@ fn fs_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
         diffuse_tex_color = vec4f(1,1,1,1);
     }
 
-    let diffuse = 0.3 + clamp(dot(normalize(vertex.normal), vec3<f32>(0.0, 1.0, 0.0)), 0.0, 1.0);
+    let diffuse = 0.3 + clamp(vertex.intensity, 0.0, 1.0);
 
     if(uniformData.chao_mode == 1) {
         // jewel
