@@ -155,7 +155,7 @@ pub struct VertexChunk {
 
     pub vertices: Vec<Point3>,
     pub normals: Option<Vec<Point3>>,
-    pub diffuse: Option<Vec<Color>>,
+    pub diffuse: Option<Vec<u32>>,
     pub specular: Option<Vec<Color>>,
     pub user_flags: Option<Vec<u32>>,
     pub ninja_flags: Option<Vec<u32>>,
@@ -185,10 +185,7 @@ impl VertexChunk {
             }
 
             if let Some(diffuse) = &self.diffuse {
-                bytes.extend_from_slice(diffuse[i].b.as_bytes());
-                bytes.extend_from_slice(diffuse[i].g.as_bytes());
-                bytes.extend_from_slice(diffuse[i].r.as_bytes());
-                bytes.extend_from_slice(diffuse[i].a.as_bytes());
+                bytes.extend_from_slice(diffuse[i].as_bytes());
             }
 
             if let Some(user_flags) = &self.user_flags {
@@ -230,7 +227,7 @@ impl VertexChunk {
         } else {
             None
         };
-        let mut diffuse: Option<Vec<Color>> = if chunk_type.has_diffuse() {
+        let mut diffuse: Option<Vec<u32>> = if chunk_type.has_diffuse() {
             Some(Vec::new())
         } else {
             None
@@ -263,7 +260,7 @@ impl VertexChunk {
             }
 
             if let Some(ref mut vec) = diffuse {
-                vec.push(Color::from_buf(reader)?);
+                vec.push(reader.read_u32::<LittleEndian>()?);
             }
 
             if let Some(ref mut vec) = user_flags {
