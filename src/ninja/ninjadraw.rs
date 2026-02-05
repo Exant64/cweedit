@@ -26,6 +26,18 @@ struct Vertex {
     _pos: [f32; 4],
     _normal: [f32; 3],
     _tex_coord: [f32; 2],
+    _color: u32,
+}
+
+impl Default for Vertex {
+    fn default() -> Self {
+        Vertex {
+            _pos: [0.0, 0.0, 0.0, 1.0],
+            _normal: [0.0, 1.0, 0.0],
+            _tex_coord: [0.0, 0.0],
+            _color: 0xFFFFFFFF,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, NoUninit)]
@@ -68,6 +80,8 @@ struct NinjaPipeline {
     use_palette: bool,
     use_texture: bool,
     use_alpha: bool,
+    has_normal: bool,
+    has_vcolor: bool,
     double_sided: bool,
     blend_col: wgpu::BlendComponent,
     blend_alpha: wgpu::BlendComponent,
@@ -312,6 +326,22 @@ impl NinjaDrawState {
                     0.0
                 },
             );
+            constants_map.insert(
+                "has_normal".to_string(),
+                if pipeline_settings.has_normal {
+                    1.0
+                } else {
+                    0.0
+                },
+            );
+            constants_map.insert(
+                "has_vcolor".to_string(),
+                if pipeline_settings.has_vcolor {
+                    1.0
+                } else {
+                    0.0
+                },
+            );
 
             self.pipeline_cache.insert(
                 pipeline_settings.clone(),
@@ -503,14 +533,7 @@ impl NinjaState {
 
         let device = &wgpu_render_state.device;
 
-        let vertices_test = vec![
-            Vertex {
-                _pos: [0.0, 0.0, 0.0, 1.0],
-                _normal: [0.0, 0.0, 0.0],
-                _tex_coord: [0.0, 0.0]
-            };
-            32678 / 2
-        ];
+        let vertices_test = vec![Vertex::default(); 32678 / 2];
 
         let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Vertex Buffer"),
@@ -741,14 +764,7 @@ impl NinjaState {
         Some(Self {
             draw_state,
 
-            ninja_vertex_buffer: vec![
-                Vertex {
-                    _pos: [0.0, 0.0, 0.0, 1.0],
-                    _normal: [0.0, 1.0, 0.0],
-                    _tex_coord: [0.0, 0.0]
-                };
-                32768
-            ],
+            ninja_vertex_buffer: vec![Vertex::default(); 32768],
 
             use_renderfix: true,
 
@@ -986,6 +1002,21 @@ impl NinjaState {
         mdl: &ChunkModel,
         ref texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
     ) {
+        let mut pipeline_settings = NinjaPipeline {
+            use_renderfix: self.use_renderfix,
+            use_palette: false,
+            use_alpha: false,
+            use_texture: false,
+            has_normal: false,
+            has_vcolor: false,
+            double_sided: false,
+            blend_col: BlendComponent {
+                operation: wgpu::BlendOperation::Add,
+                ..Default::default()
+            },
+            blend_alpha: BlendComponent::default(),
+        };
+
         let mvp = self.matrix_stack.get();
         let mvp_inv_trans = mvp.inverse().transpose();
 
@@ -995,6 +1026,8 @@ impl NinjaState {
                 let weight_status = x.weight_status.unwrap();
                 let vert_flags = ninja_flags.iter().zip(x.vertices.iter());
                 if let Some(normals) = &x.normals {
+                    pipeline_settings.has_normal = true;
+
                     let vert_norm_flags = vert_flags.zip(normals.iter());
                     vert_norm_flags.for_each(|((nf, p), n)| {
                         let index = (nf & 0xFFFF) as usize;
@@ -1021,7 +1054,7 @@ impl NinjaState {
                                         transformed_normal.y,
                                         transformed_normal.z,
                                     ],
-                                    _tex_coord: [0.0, 0.0],
+                                    ..Default::default()
                                 }
                             }
                             WeightStatus::Middle | WeightStatus::End => {
@@ -1036,6 +1069,8 @@ impl NinjaState {
                         };
                     });
                 } else {
+                    pipeline_settings.has_normal = false;
+
                     vert_flags.for_each(|(nf, p)| {
                         let index = (nf & 0xFFFF) as usize;
                         let vert = &mut self.ninja_vertex_buffer[buff_start + index];
@@ -1051,8 +1086,7 @@ impl NinjaState {
                             WeightStatus::Start => {
                                 *vert = Vertex {
                                     _pos: transformed_position.to_array(),
-                                    _normal: [0.0, 1.0, 0.0],
-                                    _tex_coord: [0.0, 0.0],
+                                    ..Default::default()
                                 }
                             }
                             WeightStatus::Middle | WeightStatus::End => {
@@ -1063,36 +1097,63 @@ impl NinjaState {
                         };
                     });
                 }
-            } else if let Some(normals) = &x.normals {
-                let pos_norm_iter = x.vertices.iter().zip(normals.iter());
-                pos_norm_iter.enumerate().for_each(|(index, (p, n))| {
-                    let vert = &mut self.ninja_vertex_buffer[buff_start + index];
+            
+                if let Some(diffuse) = &x.diffuse {
+                    pipeline_settings.has_vcolor = true;
 
-                    let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
-                    let transformed_normal = mvp_inv_trans * glam::vec4(n.x, n.y, n.z, 0.0);
-
-                    *vert = Vertex {
-                        _pos: transformed_position.to_array(),
-                        _normal: [
-                            transformed_normal.x,
-                            transformed_normal.y,
-                            transformed_normal.z,
-                        ],
-                        _tex_coord: [0.0, 0.0],
-                    };
-                });
+                    let vert_diff_flags = ninja_flags.iter().zip(diffuse.iter());
+                    vert_diff_flags.for_each(|((nf, p))| {
+                        let index = (nf & 0xFFFF) as usize;
+                        self.ninja_vertex_buffer[buff_start + index]._color = *p;
+                    });
+                } else {
+                    pipeline_settings.has_vcolor = false;
+                }
             } else {
-                x.vertices.iter().enumerate().for_each(|(index, p)| {
-                    let vert = &mut self.ninja_vertex_buffer[buff_start + index];
+                if let Some(normals) = &x.normals {
+                    pipeline_settings.has_normal = true;
 
-                    let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
+                    let pos_norm_iter = x.vertices.iter().zip(normals.iter());
+                    pos_norm_iter.enumerate().for_each(|(index, (p, n))| {
+                        let vert = &mut self.ninja_vertex_buffer[buff_start + index];
 
-                    *vert = Vertex {
-                        _pos: transformed_position.to_array(),
-                        _normal: [0.0, 1.0, 0.0],
-                        _tex_coord: [0.0, 0.0],
-                    };
-                });
+                        let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
+                        let transformed_normal = mvp_inv_trans * glam::vec4(n.x, n.y, n.z, 0.0);
+
+                        *vert = Vertex {
+                            _pos: transformed_position.to_array(),
+                            _normal: [
+                                transformed_normal.x,
+                                transformed_normal.y,
+                                transformed_normal.z,
+                            ],
+                            ..Default::default()
+                        };
+                    });
+                } else {
+                    pipeline_settings.has_normal = false;
+
+                    x.vertices.iter().enumerate().for_each(|(index, p)| {
+                        let vert = &mut self.ninja_vertex_buffer[buff_start + index];
+
+                        let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
+
+                        *vert = Vertex {
+                            _pos: transformed_position.to_array(),
+                            ..Default::default()
+                        };
+                    });
+                }
+
+                if let Some(colors) = &x.diffuse {
+                    pipeline_settings.has_vcolor = true;
+    
+                    colors.iter().enumerate().for_each(|(index, p)| {
+                        self.ninja_vertex_buffer[buff_start + index]._color = *p;
+                    });
+                } else {
+                    pipeline_settings.has_vcolor = false;
+                }
             }
         }
 
@@ -1100,19 +1161,6 @@ impl NinjaState {
             texlist,
             current_texture: None,
             second_texture: None,
-        };
-
-        let mut pipeline_settings = NinjaPipeline {
-            use_renderfix: self.use_renderfix,
-            use_palette: false,
-            use_alpha: false,
-            use_texture: false,
-            double_sided: false,
-            blend_col: BlendComponent {
-                operation: wgpu::BlendOperation::Add,
-                ..Default::default()
-            },
-            blend_alpha: BlendComponent::default(),
         };
 
         let mut sampler: NinjaSampler = NinjaSampler {

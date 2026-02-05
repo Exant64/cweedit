@@ -1,4 +1,6 @@
 override use_texture: bool = false;
+override has_normal: bool = false;
+override has_vcolor: bool = false;
 
 // based on 
 // specular: https://github.com/shaddatic/sa2b-render-fix/blob/master/sa2b-render-fix/rf_ninja/rj_cnk/rjcnk_cfunc.c#L184
@@ -7,6 +9,7 @@ struct VertexOutput {
     @location(0) normal: vec3<f32>,
     @location(1) tex_coord: vec2<f32>,
     @location(2) intensity: f32,
+    @location(3) vcolor: vec4<f32>,
     @builtin(position) position: vec4<f32>,
 };
 
@@ -52,6 +55,7 @@ fn vs_main(
     @location(0) position: vec4<f32>,
     @location(1) normal: vec3<f32>,
     @location(2) tex_coord: vec2<f32>,
+    @location(3) vcolor: vec4<f32>,
 ) -> VertexOutput {
     var result: VertexOutput;
 
@@ -62,6 +66,8 @@ fn vs_main(
     // technically i think it should be -LIGHT_DIRECTION, keeping it like this for now though
     // in real RF this is supposed to support multiple lights but we don't really need that
     result.intensity = dot(normalize(normal), uniformData.light_direction) * LIGHT_INTENSITY;
+
+    result.vcolor = vcolor;
 
     return result;
 }
@@ -96,10 +102,19 @@ fn fs_main(vertex: VertexOutput, @builtin(front_facing) is_front: bool) -> @loca
         return uniformData.diffuse_color * diffuse_tex_color;
     }
 
+    if has_vcolor && !has_normal {
+        return vertex.vcolor * diffuse_tex_color;
+    }
+
     let ambient = f32(1 - uniformData.ignore_ambient) * LIGHT_AMBIENT * uniformData.ambient_color;
     let specular_intensity = pow(intensity, uniformData.specular_exponent);
 
-    let color = min(ambient + vec3<f32>(intensity), vec3<f32>(1.0)) * uniformData.diffuse_color.rgb;
+    var color = min(ambient + vec3<f32>(intensity), vec3<f32>(1.0)) * uniformData.diffuse_color.rgb;
+
+    // "VND8"
+    if has_vcolor {
+        color *= vertex.color / 2.0;
+    }
 
     return clamp(vec4<f32>(color, uniformData.diffuse_color.a), vec4<f32>(0), vec4<f32>(1)) * diffuse_tex_color + vec4<f32>(f32(1 - uniformData.ignore_specular) * specular_intensity * uniformData.specular_color, 0);
 }
