@@ -292,6 +292,11 @@ impl NinjaDrawState {
                         offset: 4 * 7,
                         shader_location: 2,
                     },
+                    wgpu::VertexAttribute {
+                        format: wgpu::VertexFormat::Unorm8x4Bgra,
+                        offset: 4 * 7 + 4 * 2,
+                        shader_location: 3,
+                    },
                 ],
             }];
 
