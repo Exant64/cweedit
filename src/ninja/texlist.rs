@@ -51,9 +51,9 @@ impl NinjaGpuTex<RenderState> for NinjaGpuTexEntry {
             texture_extent,
         );
 
-        return NinjaGpuTexEntry {
+        NinjaGpuTexEntry {
             _texture: texture,
             texture_view,
-        };
+        }
     }
 }

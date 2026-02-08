@@ -41,18 +41,17 @@ impl NinjaChunkObject {
         }
 
         if let Some(model) = &self.model {
-            if model.vertex_list.len() > 0 && vlist.is_none() {
+            if !model.vertex_list.is_empty() && vlist.is_none() {
                 let mut vlist_bytes: Vec<u8> = model
                     .vertex_list
                     .iter()
-                    .map(|v| v.to_bytes())
-                    .flatten()
+                    .flat_map(|v| v.to_bytes())
                     .collect();
                 vlist_bytes.extend_from_slice(&[0xFF, 0x00, 0x00, 0x00]);
                 *vlist = Some(vlist_bytes);
             }
 
-            if model.poly_bytes.len() > 0 && plist.is_none() {
+            if !model.poly_bytes.is_empty() && plist.is_none() {
                 let mut plist_bytes: Vec<u8> = model.poly_bytes.clone();
                 plist_bytes.extend_from_slice(&[0xFF, 0x00]);
                 *plist = Some(plist_bytes);
@@ -238,8 +237,8 @@ impl NinjaChunkObject {
                 z: scl_z,
             },
             model: chunkmodel,
-            child: child,
-            sibling: sibling,
+            child,
+            sibling,
         });
 
         Ok(obj)

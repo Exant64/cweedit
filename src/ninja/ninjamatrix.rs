@@ -43,6 +43,6 @@ impl NinjaMatrixStack {
     }
 
     pub fn get(&self) -> glam::Mat4 {
-        return self.stack[0];
+        self.stack[0]
     }
 }

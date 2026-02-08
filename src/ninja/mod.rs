@@ -31,9 +31,9 @@ pub enum AlphaInstruction {
     InverseDestinationAlpha,
 }
 
-impl Into<wgpu::BlendFactor> for AlphaInstruction {
-    fn into(self) -> wgpu::BlendFactor {
-        match self {
+impl From<AlphaInstruction> for wgpu::BlendFactor {
+    fn from(val: AlphaInstruction) -> Self {
+        match val {
             AlphaInstruction::Zero => wgpu::BlendFactor::Zero,
             AlphaInstruction::One => wgpu::BlendFactor::One,
             AlphaInstruction::OtherColor => wgpu::BlendFactor::Src1,
@@ -60,9 +60,9 @@ impl TryFrom<u8> for FilterMode {
     }
 }
 
-impl Into<u8> for AlphaInstruction {
-    fn into(self) -> u8 {
-        match self {
+impl From<AlphaInstruction> for u8 {
+    fn from(val: AlphaInstruction) -> Self {
+        match val {
             AlphaInstruction::Zero => 0,
             AlphaInstruction::One => 1,
             AlphaInstruction::OtherColor => 2,

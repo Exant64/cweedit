@@ -205,7 +205,7 @@ impl GameState {
         let ninja_state = NinjaState::init(cc).unwrap();
 
         let chao_global_state = Rc::new(ChaoGlobalState::init(
-            &cc.wgpu_render_state.as_ref().unwrap(),
+            cc.wgpu_render_state.as_ref().unwrap(),
         ));
 
         cc.wgpu_render_state
@@ -320,5 +320,5 @@ pub fn main() {
     )
     .expect("Couldn't start egui app!");
 
-    ()
+    
 }

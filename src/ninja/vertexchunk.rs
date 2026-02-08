@@ -218,7 +218,7 @@ impl VertexChunk {
         let mut weight_status = None;
 
         if chunk_type.has_ninja_flags() {
-            weight_status = Some(WeightStatus::try_from((flags & 3) as u8).unwrap());
+            weight_status = Some(WeightStatus::try_from(((flags & 3))).unwrap());
         }
 
         let index_offset = (header2 & 0xFFFF) as u16;

@@ -171,7 +171,7 @@ impl NinjaDrawState {
                             offset: 0,
                             size: wgpu::BufferSize::new(align_to(
                                 size_of::<NinjaUniformEntry>(),
-                                self.min_uniform_offset as usize,
+                                self.min_uniform_offset,
                             ) as u64),
                         }),
                     },
@@ -182,7 +182,7 @@ impl NinjaDrawState {
                             offset: 0,
                             size: wgpu::BufferSize::new(align_to(
                                 size_of::<glam::Mat4>(),
-                                self.min_uniform_offset as usize,
+                                self.min_uniform_offset,
                             ) as u64),
                         }),
                     },
@@ -219,7 +219,7 @@ impl NinjaDrawState {
 
     fn push_constant_data(&mut self, data: &NinjaUniformEntry) -> usize {
         let mut slc = Vec::from(bytemuck::bytes_of(data));
-        let aligned = align_to(slc.len(), self.min_uniform_offset as usize);
+        let aligned = align_to(slc.len(), self.min_uniform_offset);
         if slc.len() < aligned {
             slc.resize(aligned, 0);
         }
@@ -317,7 +317,7 @@ impl NinjaDrawState {
                 pipeline_settings.clone(),
                 device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                     label: None,
-                    layout: Some(&pipeline_layout),
+                    layout: Some(pipeline_layout),
                     vertex: wgpu::VertexState {
                         module: shader,
                         entry_point: Some("vs_main"),
@@ -373,7 +373,7 @@ impl NinjaDrawState {
                     wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::Sampler(
-                            &self.sampler_cache.get(sampler).unwrap(),
+                            self.sampler_cache.get(sampler).unwrap(),
                         ),
                     },
                     wgpu::BindGroupEntry {
@@ -398,7 +398,7 @@ impl NinjaDrawState {
                     wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::Sampler(
-                            &self.sampler_cache.get(sampler).unwrap(),
+                            self.sampler_cache.get(sampler).unwrap(),
                         ),
                     },
                     wgpu::BindGroupEntry {
@@ -407,7 +407,7 @@ impl NinjaDrawState {
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
-                        resource: wgpu::BindingResource::TextureView(&second_texture_view.unwrap()),
+                        resource: wgpu::BindingResource::TextureView(second_texture_view.unwrap()),
                     },
                 ],
                 label: None,
@@ -415,7 +415,7 @@ impl NinjaDrawState {
         };
 
         self.draw_entries.push(NinjaDrawEntry {
-            vertex_start: vertex_start,
+            vertex_start,
             vertex_end: vertices.len() as u32,
             uniform_offset: uniform_start,
             texture_bind_group,
@@ -487,8 +487,7 @@ impl NinjaState {
     }
 
     fn create_constant_buffer(device: &wgpu::Device, size: usize) -> wgpu::Buffer {
-        let mut default_buf = Vec::new();
-        default_buf.resize(size, 0u8);
+        let mut default_buf = vec![0; size];
 
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
@@ -639,7 +638,7 @@ impl NinjaState {
             });
 
         let constant_buffer = Self::create_constant_buffer(
-            &device,
+            device,
             align_to(
                 size_of::<NinjaUniformEntry>(),
                 minimum_uniform_size as usize,
@@ -797,7 +796,7 @@ impl NinjaState {
                     let (vec, index) = self.poly_cache[*v as usize].as_ref().unwrap();
                     self.parse_poly_chunk(
                         device,
-                        &vec.iter().cloned().skip(*index).collect(),
+                        &vec.iter().skip(*index).cloned().collect(),
                         tex_draw,
                         pipeline_settings,
                         sampler,
@@ -919,7 +918,7 @@ impl NinjaState {
                             if i == 0 {
                                 if s.reversed && vertices.is_empty() {
                                     vertices.push(vert);
-                                } else if vertices.len() > 0 {
+                                } else if !vertices.is_empty() {
                                     if (!s.reversed && (vertices.len() % 2) == 1)
                                         || (s.reversed && (vertices.len() % 2) == 0)
                                     {
@@ -968,12 +967,12 @@ impl NinjaState {
 
                     self.draw_state.lock().push_draw(
                         device,
-                        &uniform_entry,
+                        uniform_entry,
                         vertices.as_slice(),
                         tex_draw.current_texture,
                         tex_draw.second_texture,
-                        &sampler,
-                        &pipeline_settings,
+                        sampler,
+                        pipeline_settings,
                     );
                 }
                 _ => continue,
@@ -1064,38 +1063,36 @@ impl NinjaState {
                         };
                     });
                 }
+            } else if let Some(normals) = &x.normals {
+                let pos_norm_iter = x.vertices.iter().zip(normals.iter());
+                pos_norm_iter.enumerate().for_each(|(index, (p, n))| {
+                    let vert = &mut self.ninja_vertex_buffer[buff_start + index];
+
+                    let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
+                    let transformed_normal = mvp_inv_trans * glam::vec4(n.x, n.y, n.z, 0.0);
+
+                    *vert = Vertex {
+                        _pos: transformed_position.to_array(),
+                        _normal: [
+                            transformed_normal.x,
+                            transformed_normal.y,
+                            transformed_normal.z,
+                        ],
+                        _tex_coord: [0.0, 0.0],
+                    };
+                });
             } else {
-                if let Some(normals) = &x.normals {
-                    let pos_norm_iter = x.vertices.iter().zip(normals.iter());
-                    pos_norm_iter.enumerate().for_each(|(index, (p, n))| {
-                        let vert = &mut self.ninja_vertex_buffer[buff_start + index];
+                x.vertices.iter().enumerate().for_each(|(index, p)| {
+                    let vert = &mut self.ninja_vertex_buffer[buff_start + index];
 
-                        let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
-                        let transformed_normal = mvp_inv_trans * glam::vec4(n.x, n.y, n.z, 0.0);
+                    let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
 
-                        *vert = Vertex {
-                            _pos: transformed_position.to_array(),
-                            _normal: [
-                                transformed_normal.x,
-                                transformed_normal.y,
-                                transformed_normal.z,
-                            ],
-                            _tex_coord: [0.0, 0.0],
-                        };
-                    });
-                } else {
-                    x.vertices.iter().enumerate().for_each(|(index, p)| {
-                        let vert = &mut self.ninja_vertex_buffer[buff_start + index];
-
-                        let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
-
-                        *vert = Vertex {
-                            _pos: transformed_position.to_array(),
-                            _normal: [0.0, 1.0, 0.0],
-                            _tex_coord: [0.0, 0.0],
-                        };
-                    });
-                }
+                    *vert = Vertex {
+                        _pos: transformed_position.to_array(),
+                        _normal: [0.0, 1.0, 0.0],
+                        _tex_coord: [0.0, 0.0],
+                    };
+                });
             }
         }
 
@@ -1221,7 +1218,7 @@ impl NinjaState {
     pub fn draw(
         &mut self,
         device: &Device,
-        ref obj: &NinjaChunkObject,
+        obj: &NinjaChunkObject,
         ref texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
     ) {
         self.matrix_stack.push();

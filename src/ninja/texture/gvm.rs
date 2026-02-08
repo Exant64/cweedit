@@ -300,7 +300,7 @@ where
     pub fn load_tex(tex_state: &J, path: &PathBuf) -> Result<Self, NinjaTexReadError> {
         let data = std::fs::read(path)?;
         if let Some(extension) = &path.extension() {
-            if extension.to_ascii_lowercase() == "pak" {
+            if extension.eq_ignore_ascii_case("pak") {
                 Self::load_pak(
                     tex_state,
                     path.file_stem()

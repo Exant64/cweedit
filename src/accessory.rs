@@ -80,11 +80,11 @@ impl AccessoryData {
         .to_str()
         .ok_or("Failed to convert final model path to string!")?;
 
-        if self.id.len() < 1 {
+        if self.id.is_empty() {
             return Err("ID cannot be empty!".into());
         }
 
-        return Ok(relative_object_path);
+        Ok(relative_object_path)
     }
 
     pub fn save_json(
@@ -98,7 +98,6 @@ impl AccessoryData {
             .material_slots
             .map(|x| hex_color::Display::new(HexColor::rgb(x.r, x.g, x.b)).to_string());
         let used_slots: Vec<usize> = (0..8)
-            .into_iter()
             .filter(|x| {
                 self.material_slot_users
                     .clone()
@@ -350,11 +349,7 @@ impl AccessoryData {
             Err("disable_jiggle isn't a boolean!")
         }?;
 
-        let bald_dont_hide_parts = if let Some(b) = document["bald_dont_hide_parts"].as_bool() {
-            b
-        } else {
-            false
-        };
+        let bald_dont_hide_parts = document["bald_dont_hide_parts"].as_bool().unwrap_or_default();
 
         let market_data = MarketData::read_json(&document)?;
 
@@ -440,9 +435,9 @@ impl AccessoryData {
                 disable_jiggle,
                 use_renderfix,
                 renderfix_preview: true,
-                bald_mode: bald_mode,
+                bald_mode,
                 bald_dont_hide_parts,
-                bald_preset_sides: bald_preset_sides,
+                bald_preset_sides,
                 bald_influence,
                 bald_center,
                 bald_clip_face,

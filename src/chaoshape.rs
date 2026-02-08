@@ -42,9 +42,9 @@ enum PaletteIndex {
     HPZ = 0x21,
 }
 
-impl Into<usize> for PaletteIndex {
-    fn into(self) -> usize {
-        match self {
+impl From<PaletteIndex> for usize {
+    fn from(val: PaletteIndex) -> Self {
+        match val {
             PaletteIndex::NCZ => 0x0,
             PaletteIndex::HCZ => 0x2,
             PaletteIndex::HCN => 0x3,
@@ -177,7 +177,7 @@ impl ChaoShape {
             }
             return Some(final_list);
         }
-        return None;
+        None
     }
 
     fn use_adjacency_indices(&mut self) {
@@ -215,14 +215,14 @@ impl ChaoShape {
         let mut child_nodes_vec = Vec::new();
         Self::get_object_list(
             &mut child_nodes_vec,
-            &mut chao_global_state.root_objects[0].clone(),
+            &chao_global_state.root_objects[0].clone(),
         );
 
         let mut zero_nodes_vec = Vec::new();
 
         Self::get_object_list(
             &mut zero_nodes_vec,
-            &mut chao_global_state.root_objects[type_index + 0].clone(),
+            &chao_global_state.root_objects[type_index].clone(),
         );
 
         let diff = child_nodes_vec
@@ -256,23 +256,23 @@ impl ChaoShape {
 
         Self::get_object_list(
             &mut shape.normal_models.normal,
-            &mut chao_global_state.root_objects[type_index + 1].clone(),
+            &chao_global_state.root_objects[type_index + 1].clone(),
         );
         Self::get_object_list(
             &mut shape.normal_models.swim,
-            &mut chao_global_state.root_objects[type_index + 2].clone(),
+            &chao_global_state.root_objects[type_index + 2].clone(),
         );
         Self::get_object_list(
             &mut shape.normal_models.fly,
-            &mut chao_global_state.root_objects[type_index + 3].clone(),
+            &chao_global_state.root_objects[type_index + 3].clone(),
         );
         Self::get_object_list(
             &mut shape.normal_models.run,
-            &mut chao_global_state.root_objects[type_index + 4].clone(),
+            &chao_global_state.root_objects[type_index + 4].clone(),
         );
         Self::get_object_list(
             &mut shape.normal_models.power,
-            &mut chao_global_state.root_objects[type_index + 5].clone(),
+            &chao_global_state.root_objects[type_index + 5].clone(),
         );
 
         if chao_param.chao_type == TYPE_CHILD {
@@ -296,52 +296,52 @@ impl ChaoShape {
 
             Self::get_object_list(
                 &mut hero_models.zero,
-                &mut chao_global_state.root_objects[6].clone(),
+                &chao_global_state.root_objects[6].clone(),
             );
             Self::get_object_list(
                 &mut hero_models.normal,
-                &mut chao_global_state.root_objects[7].clone(),
+                &chao_global_state.root_objects[7].clone(),
             );
             Self::get_object_list(
                 &mut hero_models.swim,
-                &mut chao_global_state.root_objects[8].clone(),
+                &chao_global_state.root_objects[8].clone(),
             );
             Self::get_object_list(
                 &mut hero_models.fly,
-                &mut chao_global_state.root_objects[9].clone(),
+                &chao_global_state.root_objects[9].clone(),
             );
             Self::get_object_list(
                 &mut hero_models.run,
-                &mut chao_global_state.root_objects[10].clone(),
+                &chao_global_state.root_objects[10].clone(),
             );
             Self::get_object_list(
                 &mut hero_models.power,
-                &mut chao_global_state.root_objects[11].clone(),
+                &chao_global_state.root_objects[11].clone(),
             );
 
             Self::get_object_list(
                 &mut dark_models.zero,
-                &mut chao_global_state.root_objects[12].clone(),
+                &chao_global_state.root_objects[12].clone(),
             );
             Self::get_object_list(
                 &mut dark_models.normal,
-                &mut chao_global_state.root_objects[13].clone(),
+                &chao_global_state.root_objects[13].clone(),
             );
             Self::get_object_list(
                 &mut dark_models.swim,
-                &mut chao_global_state.root_objects[14].clone(),
+                &chao_global_state.root_objects[14].clone(),
             );
             Self::get_object_list(
                 &mut dark_models.fly,
-                &mut chao_global_state.root_objects[15].clone(),
+                &chao_global_state.root_objects[15].clone(),
             );
             Self::get_object_list(
                 &mut dark_models.run,
-                &mut chao_global_state.root_objects[16].clone(),
+                &chao_global_state.root_objects[16].clone(),
             );
             Self::get_object_list(
                 &mut dark_models.power,
-                &mut chao_global_state.root_objects[17].clone(),
+                &chao_global_state.root_objects[17].clone(),
             );
 
             shape.hero_models = Some(hero_models);
@@ -401,7 +401,7 @@ impl ChaoShape {
 
         if (PART_ATTR[*index] & PART_ATTR_NODE) != 0 {
             object.pos.x = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].pos.x,
                 vertical_objects[*index].pos.x,
                 normal_objects[*index].pos.x,
@@ -409,7 +409,7 @@ impl ChaoShape {
             );
 
             object.pos.y = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].pos.y,
                 vertical_objects[*index].pos.y,
                 normal_objects[*index].pos.y,
@@ -417,7 +417,7 @@ impl ChaoShape {
             );
 
             object.pos.z = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].pos.z,
                 vertical_objects[*index].pos.z,
                 normal_objects[*index].pos.z,
@@ -425,7 +425,7 @@ impl ChaoShape {
             );
 
             object.ang.x = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].ang.x as f32,
                 vertical_objects[*index].ang.x as f32,
                 normal_objects[*index].ang.x as f32,
@@ -433,7 +433,7 @@ impl ChaoShape {
             ) as i32;
 
             object.ang.y = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].ang.y as f32,
                 vertical_objects[*index].ang.y as f32,
                 normal_objects[*index].ang.y as f32,
@@ -441,7 +441,7 @@ impl ChaoShape {
             ) as i32;
 
             object.ang.z = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].ang.z as f32,
                 vertical_objects[*index].ang.z as f32,
                 normal_objects[*index].ang.z as f32,
@@ -516,7 +516,7 @@ impl ChaoShape {
                             let our_diffuse = diffuse.as_mut().unwrap();
 
                             our_diffuse.r = lerp_closure(
-                                &deform_parameters,
+                                deform_parameters,
                                 horizontal_diffuse.r as f32,
                                 vertical_diffuse.r as f32,
                                 normal_diffuse.r as f32,
@@ -524,7 +524,7 @@ impl ChaoShape {
                             ) as u8;
 
                             our_diffuse.g = lerp_closure(
-                                &deform_parameters,
+                                deform_parameters,
                                 horizontal_diffuse.g as f32,
                                 vertical_diffuse.g as f32,
                                 normal_diffuse.g as f32,
@@ -532,7 +532,7 @@ impl ChaoShape {
                             ) as u8;
 
                             our_diffuse.b = lerp_closure(
-                                &deform_parameters,
+                                deform_parameters,
                                 horizontal_diffuse.b as f32,
                                 vertical_diffuse.b as f32,
                                 normal_diffuse.b as f32,
@@ -554,7 +554,7 @@ impl ChaoShape {
                     let vertical_vertex_pos = &vertical_model.vertex_list[0].vertices[i];
 
                     vertex_pos.x = lerp_closure(
-                        &deform_parameters,
+                        deform_parameters,
                         horizontal_vertex_pos.x,
                         vertical_vertex_pos.x,
                         normal_vertex_pos.x,
@@ -562,7 +562,7 @@ impl ChaoShape {
                     );
 
                     vertex_pos.y = lerp_closure(
-                        &deform_parameters,
+                        deform_parameters,
                         horizontal_vertex_pos.y,
                         vertical_vertex_pos.y,
                         normal_vertex_pos.y,
@@ -570,7 +570,7 @@ impl ChaoShape {
                     );
 
                     vertex_pos.z = lerp_closure(
-                        &deform_parameters,
+                        deform_parameters,
                         horizontal_vertex_pos.z,
                         vertical_vertex_pos.z,
                         normal_vertex_pos.z,
@@ -585,11 +585,11 @@ impl ChaoShape {
             Self::deform_object(
                 index,
                 child,
-                &deform_parameters,
-                &zero_objects,
-                &normal_objects,
-                &horizontal_objects,
-                &vertical_objects,
+                deform_parameters,
+                zero_objects,
+                normal_objects,
+                horizontal_objects,
+                vertical_objects,
             );
         }
 
@@ -598,11 +598,11 @@ impl ChaoShape {
             Self::deform_object(
                 index,
                 sibling,
-                &deform_parameters,
-                &zero_objects,
-                &normal_objects,
-                &horizontal_objects,
-                &vertical_objects,
+                deform_parameters,
+                zero_objects,
+                normal_objects,
+                horizontal_objects,
+                vertical_objects,
             );
         }
     }
@@ -621,8 +621,8 @@ impl ChaoShape {
         alignment_vertical_objects: &Vec<Box<NinjaChunkObject>>,
     ) {
         let interp_angle = |val_a: f32, val_b: f32, t: f32| -> f32 {
-            let in_degrees_a = val_a as f32 * 360.0 / 65536.0;
-            let mut in_degrees_b = val_b as f32 * 360.0 / 65536.0 - in_degrees_a;
+            let in_degrees_a = val_a * 360.0 / 65536.0;
+            let mut in_degrees_b = val_b * 360.0 / 65536.0 - in_degrees_a;
 
             while in_degrees_b > 180.0 {
                 in_degrees_b -= 360.0;
@@ -694,7 +694,7 @@ impl ChaoShape {
 
         if (PART_ATTR[*index] & PART_ATTR_NODE) != 0 {
             object.pos.x = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].pos.x,
                 vertical_objects[*index].pos.x,
                 normal_objects[*index].pos.x,
@@ -706,7 +706,7 @@ impl ChaoShape {
             );
 
             object.pos.y = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].pos.y,
                 vertical_objects[*index].pos.y,
                 normal_objects[*index].pos.y,
@@ -718,7 +718,7 @@ impl ChaoShape {
             );
 
             object.pos.z = lerp_closure(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].pos.z,
                 vertical_objects[*index].pos.z,
                 normal_objects[*index].pos.z,
@@ -730,7 +730,7 @@ impl ChaoShape {
             );
 
             object.ang.x = lerp_angle(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].ang.x as f32,
                 vertical_objects[*index].ang.x as f32,
                 normal_objects[*index].ang.x as f32,
@@ -742,7 +742,7 @@ impl ChaoShape {
             ) as i32;
 
             object.ang.y = lerp_angle(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].ang.y as f32,
                 vertical_objects[*index].ang.y as f32,
                 normal_objects[*index].ang.y as f32,
@@ -754,7 +754,7 @@ impl ChaoShape {
             ) as i32;
 
             object.ang.z = lerp_angle(
-                &deform_parameters,
+                deform_parameters,
                 horizontal_objects[*index].ang.z as f32,
                 vertical_objects[*index].ang.z as f32,
                 normal_objects[*index].ang.z as f32,
@@ -834,7 +834,7 @@ impl ChaoShape {
                             let our_diffuse = diffuse.as_mut().unwrap();
 
                             our_diffuse.r = lerp_closure(
-                                &deform_parameters,
+                                deform_parameters,
                                 horizontal_diffuse.r as f32,
                                 vertical_diffuse.r as f32,
                                 normal_diffuse.r as f32,
@@ -846,7 +846,7 @@ impl ChaoShape {
                             ) as u8;
 
                             our_diffuse.g = lerp_closure(
-                                &deform_parameters,
+                                deform_parameters,
                                 horizontal_diffuse.g as f32,
                                 vertical_diffuse.g as f32,
                                 normal_diffuse.g as f32,
@@ -858,7 +858,7 @@ impl ChaoShape {
                             ) as u8;
 
                             our_diffuse.b = lerp_closure(
-                                &deform_parameters,
+                                deform_parameters,
                                 horizontal_diffuse.b as f32,
                                 vertical_diffuse.b as f32,
                                 normal_diffuse.b as f32,
@@ -893,7 +893,7 @@ impl ChaoShape {
                         &alignment_vertical_model.vertex_list[0].vertices[i];
 
                     vertex_pos.x = lerp_closure(
-                        &deform_parameters,
+                        deform_parameters,
                         horizontal_vertex_pos.x,
                         vertical_vertex_pos.x,
                         normal_vertex_pos.x,
@@ -905,7 +905,7 @@ impl ChaoShape {
                     );
 
                     vertex_pos.y = lerp_closure(
-                        &deform_parameters,
+                        deform_parameters,
                         horizontal_vertex_pos.y,
                         vertical_vertex_pos.y,
                         normal_vertex_pos.y,
@@ -917,7 +917,7 @@ impl ChaoShape {
                     );
 
                     vertex_pos.z = lerp_closure(
-                        &deform_parameters,
+                        deform_parameters,
                         horizontal_vertex_pos.z,
                         vertical_vertex_pos.z,
                         normal_vertex_pos.z,
@@ -936,15 +936,15 @@ impl ChaoShape {
             Self::deform_object_child(
                 index,
                 child,
-                &deform_parameters,
-                &zero_objects,
-                &normal_objects,
-                &horizontal_objects,
-                &vertical_objects,
-                &alignment_zero_objects,
-                &alignment_normal_objects,
-                &alignment_horizontal_objects,
-                &alignment_vertical_objects,
+                deform_parameters,
+                zero_objects,
+                normal_objects,
+                horizontal_objects,
+                vertical_objects,
+                alignment_zero_objects,
+                alignment_normal_objects,
+                alignment_horizontal_objects,
+                alignment_vertical_objects,
             );
         }
 
@@ -953,15 +953,15 @@ impl ChaoShape {
             Self::deform_object_child(
                 index,
                 sibling,
-                &deform_parameters,
-                &zero_objects,
-                &normal_objects,
-                &horizontal_objects,
-                &vertical_objects,
-                &alignment_zero_objects,
-                &alignment_normal_objects,
-                &alignment_horizontal_objects,
-                &alignment_vertical_objects,
+                deform_parameters,
+                zero_objects,
+                normal_objects,
+                horizontal_objects,
+                vertical_objects,
+                alignment_zero_objects,
+                alignment_normal_objects,
+                alignment_horizontal_objects,
+                alignment_vertical_objects,
             );
         }
     }

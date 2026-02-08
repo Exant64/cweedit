@@ -44,11 +44,11 @@ impl ChaoGlobalState {
     }
 
     fn load_model(filename: &str) -> Box<NinjaChunkObject> {
-        let mut f = File::open(&filename)
+        let mut f = File::open(filename)
             .inspect_err(|_| Self::error_dialog(&format!("Failed to open {}!", filename)))
             .unwrap();
 
-        let metadata = fs::metadata(&filename)
+        let metadata = fs::metadata(filename)
             .inspect_err(|_| {
                 Self::error_dialog(&format!("Failed to read metadata for {}!", filename))
             })

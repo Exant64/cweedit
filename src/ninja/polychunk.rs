@@ -110,7 +110,7 @@ impl Strip {
     ) -> Result<Self, NinjaParseError> {
         // TODO: no way that this has to be this ugly lol
         let read_count = reader.read_i16::<LittleEndian>()?;
-        let count = read_count.abs() as usize;
+        let count = read_count.unsigned_abs() as usize;
 
         let has_uv = chunk_type.has_uv();
         let has_uv2 = chunk_type.has_uv2();
@@ -202,31 +202,13 @@ impl Strip {
 
         Ok(Strip {
             reversed: read_count < 0,
-            indices: indices,
-            uvs: match uvs {
-                Some(x) => Some(x.into_boxed_slice()),
-                _ => None,
-            },
-            uvs2: match uvs2 {
-                Some(x) => Some(x.into_boxed_slice()),
-                _ => None,
-            },
-            colors: match colors {
-                Some(x) => Some(x.into_boxed_slice()),
-                _ => None,
-            },
-            user_flags_1: match user_flags_1 {
-                Some(x) => Some(x.into_boxed_slice()),
-                _ => None,
-            },
-            user_flags_2: match user_flags_2 {
-                Some(x) => Some(x.into_boxed_slice()),
-                _ => None,
-            },
-            user_flags_3: match user_flags_3 {
-                Some(x) => Some(x.into_boxed_slice()),
-                _ => None,
-            },
+            indices,
+            uvs: uvs.map(|x| x.into_boxed_slice()),
+            uvs2: uvs2.map(|x| x.into_boxed_slice()),
+            colors: colors.map(|x| x.into_boxed_slice()),
+            user_flags_1: user_flags_1.map(|x| x.into_boxed_slice()),
+            user_flags_2: user_flags_2.map(|x| x.into_boxed_slice()),
+            user_flags_3: user_flags_3.map(|x| x.into_boxed_slice()),
         })
     }
 }
@@ -287,7 +269,7 @@ impl PolyChunk {
 
         const NJD_NULLOFF: u32 = 0;
         const NJD_BITSOFF: u32 = 1;
-        const NJD_CB_BA: u32 = NJD_BITSOFF + 0;
+        const NJD_CB_BA: u32 = NJD_BITSOFF;
         const NJD_CB_DA: u32 = NJD_BITSOFF + 1;
         const NJD_CB_EXP: u32 = NJD_BITSOFF + 2;
         const NJD_CB_CP: u32 = NJD_BITSOFF + 3;
@@ -377,7 +359,7 @@ impl PolyChunk {
                 Ok(Some(PolyChunk::PolyChunkStrip {
                     flags: plist_flags,
                     user_flags: user_flags_count,
-                    strips: strips,
+                    strips,
                 }))
             }
 

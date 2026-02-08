@@ -30,11 +30,10 @@ impl ChunkModel {
         let poly_vec: Vec<u16> = Vec::from_iter(
             self.poly_bytes
                 .chunks(2)
-                .map(|x| zerocopy::byteorder::little_endian::U16::from_bytes([x[0], x[1]]).get())
-                .into_iter(),
+                .map(|x| zerocopy::byteorder::little_endian::U16::from_bytes([x[0], x[1]]).get()),
         );
 
-        if poly_vec.len() > 0 {
+        if !poly_vec.is_empty() {
             writer.write_str(format!("Sint16 {}[] = {{", poly_chunk_name).as_str())?;
             poly_vec.iter().cloned().for_each(|x| {
                 let v = x;
@@ -47,8 +46,7 @@ impl ChunkModel {
         let mut vertex_chunk_bytes: Vec<u8> = self
             .vertex_list
             .iter()
-            .map(|v| v.to_bytes())
-            .flatten()
+            .flat_map(|v| v.to_bytes())
             .collect();
         vertex_chunk_bytes.extend_from_slice(&[255, 255, 255, 255]);
 
@@ -58,11 +56,10 @@ impl ChunkModel {
                 .map(|x| {
                     zerocopy::byteorder::little_endian::U32::from_bytes([x[0], x[1], x[2], x[3]])
                         .get()
-                })
-                .into_iter(),
+                }),
         );
 
-        if vertex_vec.len() > 0 {
+        if !vertex_vec.is_empty() {
             writer.write_str(format!("Sint32 {}[] = {{", vertex_chunk_name).as_str())?;
             for v in &vertex_vec {
                 let str = format!("{:#04x}, ", v);
@@ -71,12 +68,12 @@ impl ChunkModel {
             writer.write_str("}};\n\n")?;
         }
 
-        let vertex_reference = if vertex_vec.len() == 0 {
+        let vertex_reference = if vertex_vec.is_empty() {
             "NULL"
         } else {
             &("&".to_string() + &vertex_chunk_name)
         };
-        let poly_reference = if poly_vec.len() == 0 {
+        let poly_reference = if poly_vec.is_empty() {
             "NULL"
         } else {
             &("&".to_string() + &poly_chunk_name)

@@ -115,22 +115,19 @@ impl NinjaMotion {
     pub fn get_motion_pos(&self, model_index: usize, frame: f32) -> Option<Point3> {
         self.pos
             .as_ref()
-            .and_then(|pos| pos[model_index].as_ref())
-            .and_then(|frames| Some(frames.interpolate(frame)))
+            .and_then(|pos| pos[model_index].as_ref()).map(|frames| frames.interpolate(frame))
     }
 
     pub fn get_motion_ang(&self, model_index: usize, frame: f32) -> Option<NinjaRotation> {
         self.ang
             .as_ref()
-            .and_then(|ang| ang[model_index].as_ref())
-            .and_then(|frames| Some(frames.interpolate(frame)))
+            .and_then(|ang| ang[model_index].as_ref()).map(|frames| frames.interpolate(frame))
     }
 
     pub fn get_motion_scl(&self, model_index: usize, frame: f32) -> Option<Point3> {
         self.scl
             .as_ref()
-            .and_then(|scl| scl[model_index].as_ref())
-            .and_then(|frames| Some(frames.interpolate(frame)))
+            .and_then(|scl| scl[model_index].as_ref()).map(|frames| frames.interpolate(frame))
     }
 
     fn read_ang_frames<R: Read>(
@@ -253,9 +250,9 @@ impl NinjaMotion {
         }
 
         Ok(Self {
-            pos: has_pos.then(|| pos),
-            ang: has_ang.then(|| ang),
-            scl: has_scl.then(|| scl),
+            pos: has_pos.then_some(pos),
+            ang: has_ang.then_some(ang),
+            scl: has_scl.then_some(scl),
             nb_frame,
             model_count,
         })

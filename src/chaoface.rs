@@ -176,6 +176,6 @@ impl ChaoFace {
 
         self.mouth_curr_num = mouth_id;
 
-        self.mouth_tex_id = MOUTH_TEXID_LIST[mouth_id as usize].clone();
+        self.mouth_tex_id = MOUTH_TEXID_LIST[mouth_id as usize];
     }
 }

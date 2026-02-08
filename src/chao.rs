@@ -185,13 +185,13 @@ impl ChaoDraw {
                     match self.node_index {
                         18 | 21 => {
                             Self::set_model_texid(mdl, &[self.eye_tex_id]);
-                            ninja.draw_mdl(device, &mdl, chao_global_state.al_eye_texlist.clone());
+                            ninja.draw_mdl(device, mdl, chao_global_state.al_eye_texlist.clone());
                         }
                         27 => {
                             Self::set_model_texid(mdl, &self.mouth_tex_id);
                             ninja.draw_mdl(
                                 device,
-                                &mdl,
+                                mdl,
                                 chao_global_state.al_mouth_texlist.clone(),
                             );
                         }
@@ -214,7 +214,7 @@ impl ChaoDraw {
                                 self.set_chao_mode(chao_param, &mut ninja);
                                 ninja.draw_mdl(
                                     device,
-                                    &mdl,
+                                    mdl,
                                     chao_global_state.al_body_texlist.clone(),
                                 );
                             }
@@ -258,7 +258,7 @@ impl ChaoDraw {
                                 }
                             }
                             self.set_chao_mode(chao_param, &mut ninja);
-                            ninja.draw_mdl(device, &mdl, chao_global_state.al_body_texlist.clone());
+                            ninja.draw_mdl(device, mdl, chao_global_state.al_body_texlist.clone());
                             ninja.disable_bald();
                         }
                     }
@@ -274,7 +274,7 @@ impl ChaoDraw {
             self.draw_chao(
                 chao_param,
                 device,
-                &ninja_state,
+                ninja_state,
                 chao_global_state,
                 child,
                 diff,
@@ -310,11 +310,11 @@ pub struct Chao {
 
 impl Chao {
     pub fn get_type(&self) -> i8 {
-        return self.chao_param.chao_type;
+        self.chao_param.chao_type
     }
 
     pub fn get_body_info(&mut self) -> &mut ChaoBodyInfo {
-        return &mut self.chao_param.body;
+        &mut self.chao_param.body
     }
 
     pub fn update_type(&mut self, chao_type: i8) {

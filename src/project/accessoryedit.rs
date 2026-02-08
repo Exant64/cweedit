@@ -1,6 +1,5 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, str::FromStr};
 
-use egui::Ui;
 use egui_wgpu::RenderState;
 use rfd::MessageDialogResult;
 
@@ -201,7 +200,7 @@ impl Project for AccessoryEditProject {
             ui,
             |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(egui::RichText::new("ID: ").color(if self.id.len() < 1 {
+                    ui.label(egui::RichText::new("ID: ").color(if self.id.is_empty() {
                         egui::Color32::from_rgb(255, 50, 50)
                     } else {
                         egui::Color32::from_rgb(50, 255, 50)
@@ -298,7 +297,7 @@ impl Project for AccessoryEditProject {
                     if let Some(tex_state) = frame.wgpu_render_state() {
                         if let Some(path_file_name) = path.file_stem() {
                             if let Some(path_str) = path_file_name.to_str() {
-                                if let Some(texlist) = NinjaTexlist::load_tex(tex_state, &path).ok()
+                                if let Ok(texlist) = NinjaTexlist::load_tex(tex_state, &path)
                                 {
                                     self.texlist = Some(Rc::new(texlist));
                                     self.texture_name = Some(path_str.to_string());
@@ -569,16 +568,15 @@ impl Project for AccessoryEditProject {
                 if ui.text_edit_singleline(&mut num_str).changed() {
                     // if the input value is vaild, update the value
                     if let Ok(parsed_value) = num_str.parse::<u8>() {
-                        self.hide_parts_selected_num = parsed_value.max(0).min(39);
+                        self.hide_parts_selected_num = parsed_value.min(39);
                     }
                 };
 
-                if ui.button("Add").clicked() {
-                    if !self.hide_parts.contains(&self.hide_parts_selected_num) {
+                if ui.button("Add").clicked()
+                    && !self.hide_parts.contains(&self.hide_parts_selected_num) {
                         self.hide_parts.push(self.hide_parts_selected_num);
                         self.check_update();
                     }
-                }
             });
 
             ui.label("Hidden:");
@@ -799,7 +797,7 @@ impl Project for AccessoryEditProject {
 
         if let Some(data) = &self.accessory_data {
             if let Some(json_path) = &self.json_path {
-                if self.id.len() > 0 && ui.button("Save").clicked() {
+                if !self.id.is_empty() && ui.button("Save").clicked() {
                     let json_err = data.save_json(&self.market_data, json_path);
                     if json_err.is_err() {
                         show_error(format!("Failed to save json: {}", json_err.err().unwrap()));
@@ -836,10 +834,7 @@ impl AccessoryEditProject {
                                 ambient: _,
                                 specular: _,
                             } => {
-                                if !self.material_backup_color.contains_key(&(i, mat_counter)) {
-                                    self.material_backup_color
-                                        .insert((i, mat_counter), diffuse.unwrap());
-                                }
+                                self.material_backup_color.entry((i, mat_counter)).or_insert_with(|| diffuse.unwrap());
 
                                 let mut need_restore = true;
                                 if self.material_slot_users.contains_key(&(i, mat_counter)) {
@@ -915,7 +910,7 @@ impl AccessoryEditProject {
             disable_jiggle: self.disable_jiggle,
             bald_mode: self.bald_mode.clone(),
             bald_dont_hide_parts: self.bald_dont_hide_hparts,
-            bald_preset_sides: self.bald_preset_sides.clone(),
+            bald_preset_sides: self.bald_preset_sides,
             bald_center: self.bald_center,
             bald_clip_face: self.bald_clip_face,
             bald_influence: self.bald_influence,
@@ -941,7 +936,7 @@ impl AccessoryEditProject {
 
         self.chao_draw
             .chao
-            .set_accessory(&self.accessory_data.as_mut().unwrap());
+            .set_accessory(self.accessory_data.as_mut().unwrap());
     }
 
     pub fn new(chao_global_state: &Rc<ChaoGlobalState>, open_or_save: bool) -> Self {
