@@ -13,11 +13,12 @@ use chaoparam::ChaoParamGc;
 use chaostate::ChaoGlobalState;
 use eframe::CreationContext;
 use egui::mutex::Mutex;
-use egui::{Event, Key};
+use egui::{Color32, Event, Key};
 use egui_wgpu::{WgpuSetup, WgpuSetupCreateNew};
 use ninja::math::NinjaRotation;
 use ninja::ninjadraw::{NinjaDrawState, NinjaState};
 use project::Project;
+use self_update::cargo_crate_version;
 use std::cell::RefCell;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -28,6 +29,7 @@ use eframe::egui_wgpu::{self, wgpu};
 use crate::project::accessoryedit::AccessoryEditProject;
 
 struct GameState {
+    has_update: Option<bool>,
     drag_angle: NinjaRotation,
     dist: f32,
     ninja_state: Rc<RefCell<NinjaState>>,
@@ -106,6 +108,17 @@ impl eframe::App for GameState {
                             false,
                         )));
                         ui.close_menu();
+                    }
+                });
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { 
+                    if let Some(has_update) = self.has_update {
+                        if has_update {
+                            ui.colored_label(Color32::LIGHT_GREEN, "Update available!");
+                        }
+                    }
+                    else {
+                        ui.colored_label(Color32::RED, "Failed to fetch update!");
                     }
                 });
             })
@@ -203,7 +216,21 @@ impl GameState {
             .callback_resources
             .insert(ninja_state.draw_state.clone());
 
+        let has_update = self_update::backends::github::Update::configure()
+            .repo_owner("exant64")
+            .repo_name("cweedit")
+            .bin_name("cweedit")
+            .show_download_progress(true)
+            .current_version(cargo_crate_version!())
+            .build()
+            .map_or(None, |config| {
+                config.get_latest_release().map_or(None, |release| {
+                    self_update::version::bump_is_greater(cargo_crate_version!(), &release.version).ok()
+                })
+            });
+
         Self {
+            has_update,
             current_project: None,
             drag_angle: NinjaRotation { x: 0, y: 0, z: 0 },
             dist: 0.0,
