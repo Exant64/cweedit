@@ -297,8 +297,7 @@ impl Project for AccessoryEditProject {
                     if let Some(tex_state) = frame.wgpu_render_state() {
                         if let Some(path_file_name) = path.file_stem() {
                             if let Some(path_str) = path_file_name.to_str() {
-                                if let Ok(texlist) = NinjaTexlist::load_tex(tex_state, &path)
-                                {
+                                if let Ok(texlist) = NinjaTexlist::load_tex(tex_state, &path) {
                                     self.texlist = Some(Rc::new(texlist));
                                     self.texture_name = Some(path_str.to_string());
 
@@ -652,10 +651,10 @@ impl Project for AccessoryEditProject {
 
             if let Some(node_index) = self.material_highlight_node_select {
                 egui::ComboBox::from_label("Material Select")
-                    .selected_text(if self.material_highlight_material_select.is_none() {
-                        "None".to_string()
+                    .selected_text(if let Some(select) = self.material_highlight_material_select {
+                        format!("{}", select)
                     } else {
-                        format!("{}", self.material_highlight_material_select.unwrap())
+                        "None".to_string()
                     })
                     .show_ui(ui, |ui| {
                         if let Some(obj) = &mut self.object {
@@ -733,16 +732,7 @@ impl Project for AccessoryEditProject {
                                     {
                                         material_count = poly_list
                                             .iter()
-                                            .filter(|poly| match poly {
-                                                PolyChunk::Material {
-                                                    source_alpha: _,
-                                                    destination_alpha: _,
-                                                    diffuse: _,
-                                                    ambient: _,
-                                                    specular: _,
-                                                } => true,
-                                                _ => false,
-                                            })
+                                            .filter(|poly| matches!(poly, PolyChunk::Material { source_alpha: _, destination_alpha: _, diffuse: _, ambient: _, specular: _ }))
                                             .count();
                                     }
 
@@ -834,7 +824,9 @@ impl AccessoryEditProject {
                                 ambient: _,
                                 specular: _,
                             } => {
-                                self.material_backup_color.entry((i, mat_counter)).or_insert_with(|| diffuse.unwrap());
+                                self.material_backup_color
+                                    .entry((i, mat_counter))
+                                    .or_insert_with(|| diffuse.unwrap());
 
                                 let mut need_restore = true;
                                 if self.material_slot_users.contains_key(&(i, mat_counter)) {

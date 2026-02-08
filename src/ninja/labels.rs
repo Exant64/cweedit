@@ -39,33 +39,35 @@ impl SAFileLabels {
             let size = reader.read_u32::<LittleEndian>()? as u64;
             let chunk_pos = reader.stream_position()?;
 
-            if chunk_type == CHUNK_LABEL { loop {
-                let data_ptr = reader.read_u32::<LittleEndian>()? as u64;
-                let label_ptr = reader.read_u32::<LittleEndian>()? as u64;
-
-                if data_ptr == u32::MAX as u64 && label_ptr == u32::MAX as u64 {
-                    break;
-                }
-
-                let pos = reader.stream_position()?;
-                reader.seek(SeekFrom::Start(chunk_pos + label_ptr))?;
-                let mut buffer = Vec::new();
+            if chunk_type == CHUNK_LABEL {
                 loop {
-                    let mut character: [u8; 1] = [0];
-                    reader.read_exact(&mut character)?;
-                    buffer.push(character[0]);
+                    let data_ptr = reader.read_u32::<LittleEndian>()? as u64;
+                    let label_ptr = reader.read_u32::<LittleEndian>()? as u64;
 
-                    if character[0] == 0 {
+                    if data_ptr == u32::MAX as u64 && label_ptr == u32::MAX as u64 {
                         break;
                     }
+
+                    let pos = reader.stream_position()?;
+                    reader.seek(SeekFrom::Start(chunk_pos + label_ptr))?;
+                    let mut buffer = Vec::new();
+                    loop {
+                        let mut character: [u8; 1] = [0];
+                        reader.read_exact(&mut character)?;
+                        buffer.push(character[0]);
+
+                        if character[0] == 0 {
+                            break;
+                        }
+                    }
+
+                    let string = CStr::from_bytes_until_nul(&buffer).unwrap();
+
+                    map.insert(data_ptr, string.to_str().unwrap().to_string());
+
+                    reader.seek(std::io::SeekFrom::Start(pos))?;
                 }
-
-                let string = CStr::from_bytes_until_nul(&buffer).unwrap();
-
-                map.insert(data_ptr, string.to_str().unwrap().to_string());
-
-                reader.seek(std::io::SeekFrom::Start(pos))?;
-            } }
+            }
 
             reader.seek(std::io::SeekFrom::Start(chunk_pos + size))?;
             chunk_type = reader.read_u32::<LittleEndian>()?;

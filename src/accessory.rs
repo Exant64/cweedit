@@ -349,7 +349,9 @@ impl AccessoryData {
             Err("disable_jiggle isn't a boolean!")
         }?;
 
-        let bald_dont_hide_parts = document["bald_dont_hide_parts"].as_bool().unwrap_or_default();
+        let bald_dont_hide_parts = document["bald_dont_hide_parts"]
+            .as_bool()
+            .unwrap_or_default();
 
         let market_data = MarketData::read_json(&document)?;
 

@@ -189,11 +189,7 @@ impl ChaoDraw {
                         }
                         27 => {
                             Self::set_model_texid(mdl, &self.mouth_tex_id);
-                            ninja.draw_mdl(
-                                device,
-                                mdl,
-                                chao_global_state.al_mouth_texlist.clone(),
-                            );
+                            ninja.draw_mdl(device, mdl, chao_global_state.al_mouth_texlist.clone());
                         }
                         19 | 22 => {
                             if self.close_ang != -16384 {

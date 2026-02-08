@@ -2,8 +2,7 @@ use std::{
     fs,
     hash::Hasher,
     io::{Cursor, Read, Seek, SeekFrom, Write},
-    path::PathBuf,
-    u8,
+    path::PathBuf
 };
 
 use byteorder::{LittleEndian, ReadBytesExt};

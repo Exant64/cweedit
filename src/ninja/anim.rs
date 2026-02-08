@@ -115,19 +115,22 @@ impl NinjaMotion {
     pub fn get_motion_pos(&self, model_index: usize, frame: f32) -> Option<Point3> {
         self.pos
             .as_ref()
-            .and_then(|pos| pos[model_index].as_ref()).map(|frames| frames.interpolate(frame))
+            .and_then(|pos| pos[model_index].as_ref())
+            .map(|frames| frames.interpolate(frame))
     }
 
     pub fn get_motion_ang(&self, model_index: usize, frame: f32) -> Option<NinjaRotation> {
         self.ang
             .as_ref()
-            .and_then(|ang| ang[model_index].as_ref()).map(|frames| frames.interpolate(frame))
+            .and_then(|ang| ang[model_index].as_ref())
+            .map(|frames| frames.interpolate(frame))
     }
 
     pub fn get_motion_scl(&self, model_index: usize, frame: f32) -> Option<Point3> {
         self.scl
             .as_ref()
-            .and_then(|scl| scl[model_index].as_ref()).map(|frames| frames.interpolate(frame))
+            .and_then(|scl| scl[model_index].as_ref())
+            .map(|frames| frames.interpolate(frame))
     }
 
     fn read_ang_frames<R: Read>(

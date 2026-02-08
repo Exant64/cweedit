@@ -5,8 +5,7 @@ use super::{
 };
 use byteorder::{LittleEndian, ReadBytesExt};
 use std::{
-    io::{Read, Seek, SeekFrom},
-    u8,
+    io::{Read, Seek, SeekFrom}
 };
 
 pub enum PolyChunkType {
@@ -50,43 +49,37 @@ impl TryFrom<u8> for PolyChunkType {
 
 impl PolyChunkType {
     pub fn has_uv(&self) -> bool {
-        match self {
-            PolyChunkType::StripUVN => true,
-            PolyChunkType::StripUVH => true,
-            PolyChunkType::StripUVNNormal => true,
-            PolyChunkType::StripUVHNormal => true,
-            PolyChunkType::StripUVNColor => true,
-            PolyChunkType::StripUVHColor => true,
-            PolyChunkType::StripUVN2 => true,
-            PolyChunkType::StripUVH2 => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            PolyChunkType::StripUVN
+                | PolyChunkType::StripUVH
+                | PolyChunkType::StripUVNNormal
+                | PolyChunkType::StripUVHNormal
+                | PolyChunkType::StripUVNColor
+                | PolyChunkType::StripUVHColor
+                | PolyChunkType::StripUVN2
+                | PolyChunkType::StripUVH2
+        )
     }
 
     pub fn has_uv2(&self) -> bool {
-        match self {
-            PolyChunkType::StripUVN2 => true,
-            PolyChunkType::StripUVH2 => true,
-            _ => false,
-        }
+        matches!(self, PolyChunkType::StripUVN2 | PolyChunkType::StripUVH2)
     }
 
     pub fn has_normals(&self) -> bool {
-        match self {
-            PolyChunkType::StripNormal => true,
-            PolyChunkType::StripUVNNormal => true,
-            PolyChunkType::StripUVHNormal => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            PolyChunkType::StripNormal
+                | PolyChunkType::StripUVNNormal
+                | PolyChunkType::StripUVHNormal
+        )
     }
 
     pub fn has_colors(&self) -> bool {
-        match self {
-            PolyChunkType::StripColor => true,
-            PolyChunkType::StripUVNColor => true,
-            PolyChunkType::StripUVHColor => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            PolyChunkType::StripColor | PolyChunkType::StripUVNColor | PolyChunkType::StripUVHColor
+        )
     }
 }
 
@@ -116,13 +109,13 @@ impl Strip {
         let has_uv2 = chunk_type.has_uv2();
         let has_vcolors = chunk_type.has_colors();
 
-        let uv_half = !match chunk_type {
-            PolyChunkType::StripUVH => true,
-            PolyChunkType::StripUVHNormal => true,
-            PolyChunkType::StripUVHColor => true,
-            PolyChunkType::StripUVH2 => true,
-            _ => false,
-        };
+        let uv_half = !matches!(
+            chunk_type,
+            PolyChunkType::StripUVH
+                | PolyChunkType::StripUVHNormal
+                | PolyChunkType::StripUVHColor
+                | PolyChunkType::StripUVH2
+        );
 
         let mut indices = vec![0u16; count].into_boxed_slice();
 
@@ -251,7 +244,7 @@ pub enum PolyChunk {
         uy: u16,
         uz: u16,
     },
-    PolyChunkStrip {
+    Strip {
         flags: u8,
         user_flags: u8,
         strips: Vec<Strip>,
@@ -356,7 +349,7 @@ impl PolyChunk {
                     )?);
                 }
 
-                Ok(Some(PolyChunk::PolyChunkStrip {
+                Ok(Some(PolyChunk::Strip {
                     flags: plist_flags,
                     user_flags: user_flags_count,
                     strips,

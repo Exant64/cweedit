@@ -3,10 +3,7 @@ use super::{
     math::{Color, Point3},
 };
 use byteorder::{LittleEndian, ReadBytesExt};
-use std::{
-    io::{Read, Seek, SeekFrom},
-    u8,
-};
+use std::io::{Read, Seek, SeekFrom};
 use zerocopy::IntoBytes;
 
 #[derive(Clone, Copy, Debug)]
@@ -35,60 +32,55 @@ pub enum VertexChunkType {
 
 impl VertexChunkType {
     fn is_sh(&self) -> bool {
-        match self {
-            VertexChunkType::SH => true,
-            VertexChunkType::NormalSH => true,
-            _ => false,
-        }
+        matches!(self, VertexChunkType::SH | VertexChunkType::NormalSH)
     }
 
     fn has_normal(&self) -> bool {
-        match self {
-            VertexChunkType::NormalSH => true,
-            VertexChunkType::Normal => true,
-            VertexChunkType::NormalDiffuse8 => true,
-            VertexChunkType::NormalUserFlags => true,
-            VertexChunkType::NormalNinjaFlags => true,
-            VertexChunkType::NormalDiffuseSpecular5 => true,
-            VertexChunkType::NormalDiffuseSpecular4 => true,
-            VertexChunkType::NormalDiffuseSpecular16 => true,
-            VertexChunkType::NormalX => true,
-            VertexChunkType::NormalXDiffuse8 => true,
-            VertexChunkType::NormalXUserFlags => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            VertexChunkType::NormalSH
+                | VertexChunkType::Normal
+                | VertexChunkType::NormalDiffuse8
+                | VertexChunkType::NormalUserFlags
+                | VertexChunkType::NormalNinjaFlags
+                | VertexChunkType::NormalDiffuseSpecular5
+                | VertexChunkType::NormalDiffuseSpecular4
+                | VertexChunkType::NormalDiffuseSpecular16
+                | VertexChunkType::NormalX
+                | VertexChunkType::NormalXDiffuse8
+                | VertexChunkType::NormalXUserFlags
+        )
     }
 
     fn has_diffuse(&self) -> bool {
-        match self {
-            VertexChunkType::Diffuse8 => true,
-            VertexChunkType::DiffuseSpecular5 => true,
-            VertexChunkType::DiffuseSpecular4 => true,
-            VertexChunkType::DiffuseSpecular16 => true,
-            VertexChunkType::NormalDiffuse8 => true,
-            VertexChunkType::NormalDiffuseSpecular5 => true,
-            VertexChunkType::NormalDiffuseSpecular4 => true,
-            VertexChunkType::NormalDiffuseSpecular16 => true,
-            VertexChunkType::NormalXDiffuse8 => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            VertexChunkType::Diffuse8
+                | VertexChunkType::DiffuseSpecular5
+                | VertexChunkType::DiffuseSpecular4
+                | VertexChunkType::DiffuseSpecular16
+                | VertexChunkType::NormalDiffuse8
+                | VertexChunkType::NormalDiffuseSpecular5
+                | VertexChunkType::NormalDiffuseSpecular4
+                | VertexChunkType::NormalDiffuseSpecular16
+                | VertexChunkType::NormalXDiffuse8
+        )
     }
 
     fn has_user_flags(&self) -> bool {
-        match self {
-            VertexChunkType::UserFlags => true,
-            VertexChunkType::NormalUserFlags => true,
-            VertexChunkType::NormalXUserFlags => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            VertexChunkType::UserFlags
+                | VertexChunkType::NormalUserFlags
+                | VertexChunkType::NormalXUserFlags
+        )
     }
 
     fn has_ninja_flags(&self) -> bool {
-        match self {
-            VertexChunkType::NinjaFlags => true,
-            VertexChunkType::NormalNinjaFlags => true,
-            _ => false,
-        }
+        matches!(
+            self,
+            VertexChunkType::NinjaFlags | VertexChunkType::NormalNinjaFlags
+        )
     }
 }
 
@@ -218,7 +210,7 @@ impl VertexChunk {
         let mut weight_status = None;
 
         if chunk_type.has_ninja_flags() {
-            weight_status = Some(WeightStatus::try_from(((flags & 3))).unwrap());
+            weight_status = Some(WeightStatus::try_from(flags & 3).unwrap());
         }
 
         let index_offset = (header2 & 0xFFFF) as u16;

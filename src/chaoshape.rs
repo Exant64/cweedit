@@ -154,7 +154,7 @@ impl ChaoShape {
                 for face in component {
                     if let Some(poly_list) = &model.poly_list {
                         match &poly_list[face.0] {
-                            PolyChunk::PolyChunkStrip {
+                            PolyChunk::Strip {
                                 flags: _,
                                 user_flags: _,
                                 strips,

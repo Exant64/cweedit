@@ -43,21 +43,13 @@ impl ChunkModel {
             writer.write_str("};\n\n")?;
         }
 
-        let mut vertex_chunk_bytes: Vec<u8> = self
-            .vertex_list
-            .iter()
-            .flat_map(|v| v.to_bytes())
-            .collect();
+        let mut vertex_chunk_bytes: Vec<u8> =
+            self.vertex_list.iter().flat_map(|v| v.to_bytes()).collect();
         vertex_chunk_bytes.extend_from_slice(&[255, 255, 255, 255]);
 
-        let vertex_vec: Vec<u32> = Vec::from_iter(
-            vertex_chunk_bytes
-                .chunks(4)
-                .map(|x| {
-                    zerocopy::byteorder::little_endian::U32::from_bytes([x[0], x[1], x[2], x[3]])
-                        .get()
-                }),
-        );
+        let vertex_vec: Vec<u32> = Vec::from_iter(vertex_chunk_bytes.chunks(4).map(|x| {
+            zerocopy::byteorder::little_endian::U32::from_bytes([x[0], x[1], x[2], x[3]]).get()
+        }));
 
         if !vertex_vec.is_empty() {
             writer.write_str(format!("Sint32 {}[] = {{", vertex_chunk_name).as_str())?;
@@ -101,7 +93,7 @@ impl ChunkModel {
         if let Some(poly_list) = &self.poly_list {
             for (poly_index, poly) in poly_list.iter().enumerate() {
                 match poly {
-                    PolyChunk::PolyChunkStrip {
+                    PolyChunk::Strip {
                         flags: _,
                         user_flags: _,
                         strips,
@@ -128,9 +120,7 @@ impl ChunkModel {
                                             .unwrap()
                                             .push(value);
                                     } else {
-                                        let mut vec = Vec::new();
-                                        vec.push(value);
-                                        map.insert((index1, index2), vec);
+                                        map.insert((index1, index2), vec![value]);
                                     };
                                 }
                             }
@@ -148,17 +138,13 @@ impl ChunkModel {
                 if let Some(list0) = adjacency.get_mut(&(list[0])) {
                     list0.push(list[1]);
                 } else {
-                    let mut vec = Vec::new();
-                    vec.push(list[1]);
-                    adjacency.insert(list[0], vec);
+                    adjacency.insert(list[0], vec![list[1]]);
                 }
 
                 if let Some(list1) = adjacency.get_mut(&(list[1])) {
                     list1.push(list[0]);
                 } else {
-                    let mut vec = Vec::new();
-                    vec.push(list[0]);
-                    adjacency.insert(list[1], vec);
+                    adjacency.insert(list[1], vec![list[0]]);
                 }
             }
         });

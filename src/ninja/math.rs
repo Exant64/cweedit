@@ -1,5 +1,5 @@
 use byteorder::{LittleEndian, ReadBytesExt};
-use std::{io::Read, u8};
+use std::io::Read;
 
 use super::error::NinjaParseError;
 

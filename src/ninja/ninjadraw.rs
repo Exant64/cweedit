@@ -487,7 +487,7 @@ impl NinjaState {
     }
 
     fn create_constant_buffer(device: &wgpu::Device, size: usize) -> wgpu::Buffer {
-        let mut default_buf = vec![0; size];
+        let default_buf = vec![0; size];
 
         device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
@@ -896,7 +896,7 @@ impl NinjaState {
                         uniform_entry.diffuse_color[3] = diff_color.a as f32 / 255.0;
                     }
                 }
-                PolyChunk::PolyChunkStrip {
+                PolyChunk::Strip {
                     flags,
                     user_flags: _,
                     strips,

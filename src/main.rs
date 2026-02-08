@@ -111,13 +111,12 @@ impl eframe::App for GameState {
                     }
                 });
 
-                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| { 
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if let Some(has_update) = self.has_update {
                         if has_update {
                             ui.colored_label(Color32::LIGHT_GREEN, "Update available!");
                         }
-                    }
-                    else {
+                    } else {
                         ui.colored_label(Color32::RED, "Failed to fetch update!");
                     }
                 });
@@ -225,7 +224,8 @@ impl GameState {
             .build()
             .map_or(None, |config| {
                 config.get_latest_release().map_or(None, |release| {
-                    self_update::version::bump_is_greater(cargo_crate_version!(), &release.version).ok()
+                    self_update::version::bump_is_greater(cargo_crate_version!(), &release.version)
+                        .ok()
                 })
             });
 
@@ -319,6 +319,4 @@ pub fn main() {
         }),
     )
     .expect("Couldn't start egui app!");
-
-    
 }
