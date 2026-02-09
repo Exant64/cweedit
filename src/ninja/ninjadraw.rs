@@ -72,6 +72,8 @@ struct NinjaUniformEntry {
 struct NinjaSampler {
     address_mode_u: wgpu::AddressMode,
     address_mode_v: wgpu::AddressMode,
+    min_mag_filter: wgpu::FilterMode,
+    mip_filter: wgpu::FilterMode,
 }
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
@@ -261,8 +263,9 @@ impl NinjaDrawState {
             self.sampler_cache.insert(
                 sampler.clone(),
                 device.create_sampler(&wgpu::SamplerDescriptor {
-                    mag_filter: wgpu::FilterMode::Linear,
-                    min_filter: wgpu::FilterMode::Linear,
+                    mag_filter: sampler.min_mag_filter,
+                    min_filter: sampler.min_mag_filter,
+                    mipmap_filter: sampler.mip_filter,
                     lod_min_clamp: 0.0,
                     address_mode_u: sampler.address_mode_u,
                     address_mode_v: sampler.address_mode_v,
@@ -843,7 +846,7 @@ impl NinjaState {
                     flip_v,
                     texture_id,
                     super_sample: _,
-                    filter_mode: _,
+                    filter_mode,
                 } => {
                     if self.chao_mode == 1 || self.chao_mode == 3 {
                         continue;
@@ -863,6 +866,18 @@ impl NinjaState {
                         sampler.address_mode_v = wgpu::AddressMode::MirrorRepeat;
                     } else {
                         sampler.address_mode_v = wgpu::AddressMode::Repeat;
+                    }
+
+                    if self.get_renderfix() {
+                        (sampler.min_mag_filter, sampler.mip_filter) = match *filter_mode {
+                            super::FilterMode::Bilinear => {
+                                (wgpu::FilterMode::Linear, wgpu::FilterMode::Nearest)
+                            }
+                            super::FilterMode::Trilinear => {
+                                (wgpu::FilterMode::Linear, wgpu::FilterMode::Linear)
+                            }
+                            _ => (wgpu::FilterMode::Nearest, wgpu::FilterMode::Nearest),
+                        }
                     }
 
                     let tex_id = *texture_id as usize;
@@ -1102,7 +1117,7 @@ impl NinjaState {
                         };
                     });
                 }
-            
+
                 if let Some(diffuse) = &x.diffuse {
                     pipeline_settings.has_vcolor = true;
 
@@ -1152,7 +1167,7 @@ impl NinjaState {
 
                 if let Some(colors) = &x.diffuse {
                     pipeline_settings.has_vcolor = true;
-    
+
                     colors.iter().enumerate().for_each(|(index, p)| {
                         self.ninja_vertex_buffer[buff_start + index]._color = *p;
                     });
@@ -1171,6 +1186,8 @@ impl NinjaState {
         let mut sampler: NinjaSampler = NinjaSampler {
             address_mode_u: wgpu::AddressMode::Repeat,
             address_mode_v: wgpu::AddressMode::Repeat,
+            min_mag_filter: wgpu::FilterMode::Linear,
+            mip_filter: wgpu::FilterMode::Nearest,
         };
 
         if self.chao_mode == 1 || self.chao_mode == 3 {

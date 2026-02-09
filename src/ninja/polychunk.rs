@@ -4,9 +4,7 @@ use super::{
     AlphaInstruction, FilterMode,
 };
 use byteorder::{LittleEndian, ReadBytesExt};
-use std::{
-    io::{Read, Seek, SeekFrom}
-};
+use std::io::{Read, Seek, SeekFrom};
 
 pub enum PolyChunkType {
     Strip,
