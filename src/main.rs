@@ -29,7 +29,7 @@ use eframe::egui_wgpu::{self, wgpu};
 use crate::project::accessoryedit::AccessoryEditProject;
 
 struct GameState {
-    has_update: Option<bool>,
+    has_update: Result<bool, self_update::errors::Error>,
     drag_angle: NinjaRotation,
     dist: f32,
     ninja_state: Rc<RefCell<NinjaState>>,
@@ -112,12 +112,12 @@ impl eframe::App for GameState {
                 });
 
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                    if let Some(has_update) = self.has_update {
+                    if let Ok(has_update) = self.has_update {
                         if has_update {
                             ui.colored_label(Color32::LIGHT_GREEN, "Update available!");
                         }
                     } else {
-                        ui.colored_label(Color32::RED, "Failed to fetch update!");
+                        ui.colored_label(Color32::RED, format!("Failed to fetch update! {}", self.has_update.as_ref().err().unwrap()));
                     }
                 });
             })
@@ -222,10 +222,9 @@ impl GameState {
             .show_download_progress(true)
             .current_version(cargo_crate_version!())
             .build()
-            .map_or(None, |config| {
-                config.get_latest_release().map_or(None, |release| {
+            .and_then(|config| {
+                config.get_latest_release().and_then(|release| {
                     self_update::version::bump_is_greater(cargo_crate_version!(), &release.version)
-                        .ok()
                 })
             });
 
