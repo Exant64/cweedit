@@ -27,37 +27,37 @@ const PART_ATTR: [u32; 40] = [
 
 #[repr(u32)]
 enum PaletteIndex {
-    NCZ = 0x0,
-    HCZ = 0x2,
-    HCN = 0x3,
-    HCS = 0x4,
-    HCF = 0x5,
-    HCR = 0x6,
-    HCP = 0x7,
-    DCZ = 0x8,
-    HNZ = 0x9,
-    HSZ = 0xF,
-    HFZ = 0x15,
-    HRZ = 0x1B,
-    HPZ = 0x21,
+    Ncz = 0x0,
+    Hcz = 0x2,
+    Hcn = 0x3,
+    Hcs = 0x4,
+    Hcf = 0x5,
+    Hcr = 0x6,
+    Hcp = 0x7,
+    Dcz = 0x8,
+    Hnz = 0x9,
+    Hsz = 0xF,
+    Hfz = 0x15,
+    Hrz = 0x1B,
+    Hpz = 0x21,
 }
 
 impl From<PaletteIndex> for usize {
     fn from(val: PaletteIndex) -> Self {
         match val {
-            PaletteIndex::NCZ => 0x0,
-            PaletteIndex::HCZ => 0x2,
-            PaletteIndex::HCN => 0x3,
-            PaletteIndex::HCS => 0x4,
-            PaletteIndex::HCF => 0x5,
-            PaletteIndex::HCR => 0x6,
-            PaletteIndex::HCP => 0x7,
-            PaletteIndex::DCZ => 0x8,
-            PaletteIndex::HNZ => 0x9,
-            PaletteIndex::HSZ => 0xF,
-            PaletteIndex::HFZ => 0x15,
-            PaletteIndex::HRZ => 0x1B,
-            PaletteIndex::HPZ => 0x21,
+            PaletteIndex::Ncz => 0x0,
+            PaletteIndex::Hcz => 0x2,
+            PaletteIndex::Hcn => 0x3,
+            PaletteIndex::Hcs => 0x4,
+            PaletteIndex::Hcf => 0x5,
+            PaletteIndex::Hcr => 0x6,
+            PaletteIndex::Hcp => 0x7,
+            PaletteIndex::Dcz => 0x8,
+            PaletteIndex::Hnz => 0x9,
+            PaletteIndex::Hsz => 0xF,
+            PaletteIndex::Hfz => 0x15,
+            PaletteIndex::Hrz => 0x1B,
+            PaletteIndex::Hpz => 0x21,
         }
     }
 }
@@ -72,17 +72,17 @@ struct ChaoDeformParameters {
 }
 
 struct ChaoShapeModelSet {
-    zero: Vec<Box<NinjaChunkObject>>,
-    normal: Vec<Box<NinjaChunkObject>>,
-    swim: Vec<Box<NinjaChunkObject>>,
-    fly: Vec<Box<NinjaChunkObject>>,
-    run: Vec<Box<NinjaChunkObject>>,
-    power: Vec<Box<NinjaChunkObject>>,
+    zero: Vec<NinjaChunkObject>,
+    normal: Vec<NinjaChunkObject>,
+    swim: Vec<NinjaChunkObject>,
+    fly: Vec<NinjaChunkObject>,
+    run: Vec<NinjaChunkObject>,
+    power: Vec<NinjaChunkObject>,
 }
 
 pub struct ChaoShape {
     chao_global_state: Rc<ChaoGlobalState>,
-    pub chao_model: Box<NinjaChunkObject>,
+    pub chao_model: NinjaChunkObject,
     pub diff: Vec<Point3>,
     normal_models: ChaoShapeModelSet,
     hero_models: Option<ChaoShapeModelSet>,
@@ -93,7 +93,7 @@ pub struct ChaoShape {
 }
 
 impl ChaoShape {
-    fn get_object_list(list: &mut Vec<Box<NinjaChunkObject>>, object: &Box<NinjaChunkObject>) {
+    fn get_object_list(list: &mut Vec<NinjaChunkObject>, object: &NinjaChunkObject) {
         list.push(object.clone());
 
         if let Some(child) = &object.child {
@@ -378,12 +378,12 @@ impl ChaoShape {
 
     fn deform_object(
         index: &mut usize,
-        object: &mut Box<NinjaChunkObject>,
+        object: &mut NinjaChunkObject,
         deform_parameters: &ChaoDeformParameters,
-        zero_objects: &Vec<Box<NinjaChunkObject>>,
-        normal_objects: &Vec<Box<NinjaChunkObject>>,
-        horizontal_objects: &Vec<Box<NinjaChunkObject>>,
-        vertical_objects: &Vec<Box<NinjaChunkObject>>,
+        zero_objects: &Vec<NinjaChunkObject>,
+        normal_objects: &Vec<NinjaChunkObject>,
+        horizontal_objects: &Vec<NinjaChunkObject>,
+        vertical_objects: &Vec<NinjaChunkObject>,
     ) {
         let lerp_closure = |deform_parameters: &ChaoDeformParameters,
                             val_h: f32,
@@ -451,10 +451,10 @@ impl ChaoShape {
 
         if (PART_ATTR[*index] & PART_ATTR_MODEL) != 0 {
             if let Some(model) = &mut object.model {
-                let zero_model = zero_objects[*index].as_ref().model.as_ref().unwrap();
-                let normal_model = normal_objects[*index].as_ref().model.as_ref().unwrap();
-                let horizontal_model = horizontal_objects[*index].as_ref().model.as_ref().unwrap();
-                let vertical_model = vertical_objects[*index].as_ref().model.as_ref().unwrap();
+                let zero_model = zero_objects[*index].model.as_ref().unwrap();
+                let normal_model = normal_objects[*index].model.as_ref().unwrap();
+                let horizontal_model = horizontal_objects[*index].model.as_ref().unwrap();
+                let vertical_model = vertical_objects[*index].model.as_ref().unwrap();
 
                 if let Some(poly_list) = &mut model.poly_list {
                     for x in 0..poly_list.len() {
@@ -609,16 +609,16 @@ impl ChaoShape {
 
     fn deform_object_child(
         index: &mut usize,
-        object: &mut Box<NinjaChunkObject>,
+        object: &mut NinjaChunkObject,
         deform_parameters: &ChaoDeformParameters,
-        zero_objects: &Vec<Box<NinjaChunkObject>>,
-        normal_objects: &Vec<Box<NinjaChunkObject>>,
-        horizontal_objects: &Vec<Box<NinjaChunkObject>>,
-        vertical_objects: &Vec<Box<NinjaChunkObject>>,
-        alignment_zero_objects: &Vec<Box<NinjaChunkObject>>,
-        alignment_normal_objects: &Vec<Box<NinjaChunkObject>>,
-        alignment_horizontal_objects: &Vec<Box<NinjaChunkObject>>,
-        alignment_vertical_objects: &Vec<Box<NinjaChunkObject>>,
+        zero_objects: &Vec<NinjaChunkObject>,
+        normal_objects: &Vec<NinjaChunkObject>,
+        horizontal_objects: &Vec<NinjaChunkObject>,
+        vertical_objects: &Vec<NinjaChunkObject>,
+        alignment_zero_objects: &Vec<NinjaChunkObject>,
+        alignment_normal_objects: &Vec<NinjaChunkObject>,
+        alignment_horizontal_objects: &Vec<NinjaChunkObject>,
+        alignment_vertical_objects: &Vec<NinjaChunkObject>,
     ) {
         let interp_angle = |val_a: f32, val_b: f32, t: f32| -> f32 {
             let in_degrees_a = val_a * 360.0 / 65536.0;
@@ -768,30 +768,17 @@ impl ChaoShape {
 
         if (PART_ATTR[*index] & PART_ATTR_MODEL) != 0 {
             if let Some(model) = &mut object.model {
-                let zero_model = zero_objects[*index].as_ref().model.as_ref().unwrap();
-                let normal_model = normal_objects[*index].as_ref().model.as_ref().unwrap();
-                let horizontal_model = horizontal_objects[*index].as_ref().model.as_ref().unwrap();
-                let vertical_model = vertical_objects[*index].as_ref().model.as_ref().unwrap();
-                let alignment_zero_model = alignment_zero_objects[*index]
-                    .as_ref()
-                    .model
-                    .as_ref()
-                    .unwrap();
-                let alignment_normal_model = alignment_normal_objects[*index]
-                    .as_ref()
-                    .model
-                    .as_ref()
-                    .unwrap();
-                let alignment_horizontal_model = alignment_horizontal_objects[*index]
-                    .as_ref()
-                    .model
-                    .as_ref()
-                    .unwrap();
-                let alignment_vertical_model = alignment_vertical_objects[*index]
-                    .as_ref()
-                    .model
-                    .as_ref()
-                    .unwrap();
+                let zero_model = zero_objects[*index].model.as_ref().unwrap();
+                let normal_model = normal_objects[*index].model.as_ref().unwrap();
+                let horizontal_model = horizontal_objects[*index].model.as_ref().unwrap();
+                let vertical_model = vertical_objects[*index].model.as_ref().unwrap();
+                let alignment_zero_model = alignment_zero_objects[*index].model.as_ref().unwrap();
+                let alignment_normal_model =
+                    alignment_normal_objects[*index].model.as_ref().unwrap();
+                let alignment_horizontal_model =
+                    alignment_horizontal_objects[*index].model.as_ref().unwrap();
+                let alignment_vertical_model =
+                    alignment_vertical_objects[*index].model.as_ref().unwrap();
 
                 if let Some(poly_list) = &mut model.poly_list {
                     for x in 0..poly_list.len() {
@@ -1062,12 +1049,12 @@ impl ChaoShape {
 
     pub fn deform_palette(&mut self, chao_param: &ChaoParamGc) {
         let palette_base_index: usize = match chao_param.chao_type {
-            TYPE_CHILD => PaletteIndex::NCZ,
-            TYPE_H_NORMAL => PaletteIndex::HNZ,
-            TYPE_H_SWIM => PaletteIndex::HSZ,
-            TYPE_H_FLY => PaletteIndex::HFZ,
-            TYPE_H_RUN => PaletteIndex::HRZ,
-            TYPE_H_POWER => PaletteIndex::HPZ,
+            TYPE_CHILD => PaletteIndex::Ncz,
+            TYPE_H_NORMAL => PaletteIndex::Hnz,
+            TYPE_H_SWIM => PaletteIndex::Hsz,
+            TYPE_H_FLY => PaletteIndex::Hfz,
+            TYPE_H_RUN => PaletteIndex::Hrz,
+            TYPE_H_POWER => PaletteIndex::Hpz,
             _ => return,
         }
         .into();
@@ -1139,24 +1126,24 @@ impl ChaoShape {
                 );
 
                 let hero_palette_zero =
-                    &self.chao_global_state.palettes[PaletteIndex::HCZ as usize];
+                    &self.chao_global_state.palettes[PaletteIndex::Hcz as usize];
                 let hero_palette_normal =
-                    &self.chao_global_state.palettes[PaletteIndex::HCN as usize];
+                    &self.chao_global_state.palettes[PaletteIndex::Hcn as usize];
 
                 let hero_palette_horizontal = if chao_param.body.h_pos < 0.0 {
-                    &self.chao_global_state.palettes[PaletteIndex::HCS as usize]
+                    &self.chao_global_state.palettes[PaletteIndex::Hcs as usize]
                 } else {
-                    &self.chao_global_state.palettes[PaletteIndex::HCF as usize]
+                    &self.chao_global_state.palettes[PaletteIndex::Hcf as usize]
                 };
 
                 let hero_palette_vertical = if chao_param.body.v_pos < 0.0 {
-                    &self.chao_global_state.palettes[PaletteIndex::HCR as usize]
+                    &self.chao_global_state.palettes[PaletteIndex::Hcr as usize]
                 } else {
-                    &self.chao_global_state.palettes[PaletteIndex::HCP as usize]
+                    &self.chao_global_state.palettes[PaletteIndex::Hcp as usize]
                 };
 
                 let dark_palette_child =
-                    &self.chao_global_state.palettes[PaletteIndex::DCZ as usize];
+                    &self.chao_global_state.palettes[PaletteIndex::Dcz as usize];
 
                 let ratio_a = chao_param.body.a_pos.abs().min(1.0);
                 if chao_param.body.a_pos >= 0.0 {

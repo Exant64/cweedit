@@ -400,7 +400,7 @@ impl NinjaDrawState {
             &self.placeholder_tex
         };
 
-        let texture_bind_group = if second_texture_view.is_none() {
+        let texture_bind_group = if let Some(second_tex) = second_texture_view {
             device.create_bind_group(&wgpu::BindGroupDescriptor {
                 layout: if !pipeline_settings.use_palette {
                     &self.regular_texture_bind_group_layout
@@ -420,7 +420,7 @@ impl NinjaDrawState {
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
-                        resource: wgpu::BindingResource::TextureView(&self.placeholder_tex),
+                        resource: wgpu::BindingResource::TextureView(second_tex),
                     },
                 ],
                 label: None,
@@ -445,7 +445,7 @@ impl NinjaDrawState {
                     },
                     wgpu::BindGroupEntry {
                         binding: 2,
-                        resource: wgpu::BindingResource::TextureView(second_texture_view.unwrap()),
+                        resource: wgpu::BindingResource::TextureView(&self.placeholder_tex),
                     },
                 ],
                 label: None,
@@ -804,7 +804,7 @@ impl NinjaState {
     fn parse_poly_chunk(
         &mut self,
         device: &Device,
-        poly_chunk_list: &Vec<PolyChunk>,
+        poly_chunk_list: &[PolyChunk],
         tex_draw: &mut TextureDrawState,
         pipeline_settings: &mut NinjaPipeline,
         sampler: &mut NinjaSampler,
@@ -813,14 +813,18 @@ impl NinjaState {
         for (i, p) in poly_chunk_list.iter().enumerate() {
             match p {
                 PolyChunk::BitsCachePolygonList(v) => {
-                    self.poly_cache[*v as usize] = Some((poly_chunk_list.clone(), i + 1));
+                    self.poly_cache[*v as usize] = Some((poly_chunk_list.to_owned(), i + 1));
                     return;
                 }
                 PolyChunk::BitsDrawPolygonList(v) => {
-                    let (vec, index) = self.poly_cache[*v as usize].as_ref().unwrap();
+                    let poly_chunk_slice = {
+                        let (vec, index) = self.poly_cache[*v as usize].as_ref().unwrap();
+                        vec[*index..].to_owned()
+                    };
+
                     self.parse_poly_chunk(
                         device,
-                        &vec.iter().skip(*index).cloned().collect(),
+                        &poly_chunk_slice,
                         tex_draw,
                         pipeline_settings,
                         sampler,
@@ -1020,7 +1024,7 @@ impl NinjaState {
         &mut self,
         device: &Device,
         mdl: &ChunkModel,
-        ref texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
+        texlist: &Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
     ) {
         let mut pipeline_settings = NinjaPipeline {
             use_renderfix: self.use_renderfix,
@@ -1122,7 +1126,7 @@ impl NinjaState {
                     pipeline_settings.has_vcolor = true;
 
                     let vert_diff_flags = ninja_flags.iter().zip(diffuse.iter());
-                    vert_diff_flags.for_each(|((nf, p))| {
+                    vert_diff_flags.for_each(|(nf, p)| {
                         let index = (nf & 0xFFFF) as usize;
                         self.ninja_vertex_buffer[buff_start + index]._color = *p;
                     });
@@ -1244,7 +1248,7 @@ impl NinjaState {
         device: &Device,
         obj: &NinjaChunkObject,
         motion: &NinjaMotion,
-        ref texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
+        texlist: &Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
         frame: f32,
         node_index: &mut usize,
     ) {
@@ -1269,19 +1273,19 @@ impl NinjaState {
         }
 
         if let Some(ref mdl) = obj.model {
-            self.draw_mdl(device, mdl, texlist.clone());
+            self.draw_mdl(device, mdl, texlist);
         }
 
         *node_index += 1;
 
         if let Some(ref child) = obj.child {
-            self.draw_motion(device, child, motion, texlist.clone(), frame, node_index);
+            self.draw_motion(device, child, motion, texlist, frame, node_index);
         }
 
         self.matrix_stack.pop();
 
         if let Some(ref sibling) = obj.sibling {
-            self.draw_motion(device, sibling, motion, texlist.clone(), frame, node_index);
+            self.draw_motion(device, sibling, motion, texlist, frame, node_index);
         }
     }
 
@@ -1289,7 +1293,7 @@ impl NinjaState {
         &mut self,
         device: &Device,
         obj: &NinjaChunkObject,
-        ref texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
+        texlist: &Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
     ) {
         self.matrix_stack.push();
 
@@ -1298,17 +1302,17 @@ impl NinjaState {
         self.matrix_stack.scale(obj.scl.x, obj.scl.y, obj.scl.z);
 
         if let Some(ref mdl) = obj.model {
-            self.draw_mdl(device, mdl, texlist.clone());
+            self.draw_mdl(device, mdl, texlist);
         }
 
         if let Some(ref child) = obj.child {
-            self.draw(device, child, texlist.clone());
+            self.draw(device, child, texlist);
         }
 
         self.matrix_stack.pop();
 
         if let Some(ref sibling) = obj.sibling {
-            self.draw(device, sibling, texlist.clone());
+            self.draw(device, sibling, texlist);
         }
     }
 

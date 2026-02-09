@@ -90,7 +90,7 @@ impl ChaoDraw {
         device: &wgpu::Device,
         ninja_state: &Rc<RefCell<NinjaState>>,
         chao_global_state: &Rc<ChaoGlobalState>,
-        obj: &mut Box<NinjaChunkObject>,
+        obj: &mut NinjaChunkObject,
         diff: &Vec<Point3>,
         motion: Option<(&NinjaMotion, f32)>,
         accessory: &Option<AccessoryData>,
@@ -144,26 +144,14 @@ impl ChaoDraw {
                     ninja.draw(
                         device,
                         &chao_global_state.masks[(chao_param.body.obake_head - 1) as usize],
-                        chao_global_state.al_body_texlist.clone(),
+                        &chao_global_state.al_body_texlist,
                     );
                 }
 
-                can_draw = !match self.node_index {
-                    16 => true,
-                    18 => true,
-                    21 => true,
-                    19 => true,
-                    22 => true,
-                    23 => true,
-                    25 => true,
-                    24 => true,
-                    26 => true,
-                    30 => true,
-                    31 => true,
-                    27 => true,
-                    29 => true,
-                    _ => false,
-                };
+                can_draw = !matches!(
+                    self.node_index,
+                    16 | 18 | 21 | 19 | 22 | 23 | 25 | 24 | 26 | 30 | 31 | 27 | 29
+                );
             }
 
             if let Some(accessory) = accessory {
@@ -185,11 +173,11 @@ impl ChaoDraw {
                     match self.node_index {
                         18 | 21 => {
                             Self::set_model_texid(mdl, &[self.eye_tex_id]);
-                            ninja.draw_mdl(device, mdl, chao_global_state.al_eye_texlist.clone());
+                            ninja.draw_mdl(device, mdl, &chao_global_state.al_eye_texlist);
                         }
                         27 => {
                             Self::set_model_texid(mdl, &self.mouth_tex_id);
-                            ninja.draw_mdl(device, mdl, chao_global_state.al_mouth_texlist.clone());
+                            ninja.draw_mdl(device, mdl, &chao_global_state.al_mouth_texlist);
                         }
                         19 | 22 => {
                             if self.close_ang != -16384 {
@@ -208,11 +196,7 @@ impl ChaoDraw {
                                     });
                                 }
                                 self.set_chao_mode(chao_param, &mut ninja);
-                                ninja.draw_mdl(
-                                    device,
-                                    mdl,
-                                    chao_global_state.al_body_texlist.clone(),
-                                );
+                                ninja.draw_mdl(device, mdl, &chao_global_state.al_body_texlist);
                             }
                         }
                         _ => {
@@ -254,7 +238,7 @@ impl ChaoDraw {
                                 }
                             }
                             self.set_chao_mode(chao_param, &mut ninja);
-                            ninja.draw_mdl(device, mdl, chao_global_state.al_body_texlist.clone());
+                            ninja.draw_mdl(device, mdl, &chao_global_state.al_body_texlist);
                             ninja.disable_bald();
                         }
                     }
@@ -401,11 +385,9 @@ impl Chao {
                         .borrow_mut()
                         .matrix_stack
                         .push_matrix(&chao_draw.node_matrices[16]);
-                    ninja_state.borrow_mut().draw(
-                        device,
-                        &accessory.object,
-                        accessory.texlist.clone(),
-                    );
+                    ninja_state
+                        .borrow_mut()
+                        .draw(device, &accessory.object, &accessory.texlist);
                     ninja_state.borrow_mut().matrix_stack.pop();
                 }
                 AccessoryType::Generic1 | AccessoryType::Generic2 => {
@@ -420,11 +402,9 @@ impl Chao {
                                 .push_matrix(&chao_draw.node_matrices[i]);
 
                             if let Some(mdl) = &obj.model {
-                                ninja_state.borrow_mut().draw_mdl(
-                                    device,
-                                    mdl,
-                                    accessory.texlist.clone(),
-                                );
+                                ninja_state
+                                    .borrow_mut()
+                                    .draw_mdl(device, mdl, &accessory.texlist);
                             }
 
                             ninja_state.borrow_mut().matrix_stack.pop();

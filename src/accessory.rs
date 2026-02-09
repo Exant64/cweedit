@@ -11,7 +11,7 @@ use hex_color::HexColor;
 use rfd::{FileDialog, MessageDialogResult};
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::rc::Rc;
 use std::str::FromStr;
 
@@ -35,7 +35,7 @@ pub struct AccessoryData {
     pub id: String,
     pub object_path: Option<PathBuf>,
     pub texture_name: Option<String>,
-    pub object: Box<NinjaChunkObject>,
+    pub object: NinjaChunkObject,
     pub texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
     pub accessory_type: AccessoryType,
     pub hide_parts: Vec<u8>,
@@ -64,7 +64,7 @@ impl AccessoryData {
         self.renderfix_preview
     }
 
-    fn safety_check_before_save(&self, json_path: &PathBuf) -> std::result::Result<&str, String> {
+    fn safety_check_before_save(&self, json_path: &Path) -> std::result::Result<&str, String> {
         let relative_object_path = if let Some(obj_path) = &self.object_path {
             obj_path
                 .as_path()
@@ -166,9 +166,8 @@ impl AccessoryData {
     pub fn read_json(
         _: &egui::Context,
         frame: &eframe::Frame,
-        json_path: &PathBuf,
+        path: &Path,
     ) -> std::result::Result<(Self, MarketData), String> {
-        let path = json_path.as_path();
         let parent = path
             .parent()
             .ok_or("Couldn't retrieve parent path of json file".to_string())?;

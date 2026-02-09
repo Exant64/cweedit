@@ -38,7 +38,7 @@ impl ChunkModel {
             poly_vec.iter().cloned().for_each(|x| {
                 let v = x;
                 let str = format!("{:#02x}, ", v);
-                writer.write_str(str.as_str());
+                let _ = writer.write_str(str.as_str());
             });
             writer.write_str("};\n\n")?;
         }

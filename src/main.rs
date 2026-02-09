@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 mod accessory;
 mod chao;
 mod chaoface;
@@ -71,13 +73,13 @@ impl eframe::App for GameState {
         let mut delete_dialog = false;
         if let Some(proj) = &mut self.current_project {
             let open_result = proj.open_dialog(ctx, frame);
-            if open_result.is_err() {
+            if let Ok(result) = open_result {
+                delete_dialog = !result;
+            } else if let Err(err) = open_result {
                 rfd::MessageDialog::new()
                     .set_title("Error")
-                    .set_description(format!("Operation failed: {}", open_result.err().unwrap()))
+                    .set_description(format!("Operation failed: {}", err))
                     .show();
-            } else {
-                delete_dialog = !open_result.unwrap()
             }
         }
 
@@ -117,7 +119,13 @@ impl eframe::App for GameState {
                             ui.colored_label(Color32::LIGHT_GREEN, "Update available!");
                         }
                     } else {
-                        ui.colored_label(Color32::RED, format!("Failed to fetch update! {}", self.has_update.as_ref().err().unwrap()));
+                        ui.colored_label(
+                            Color32::RED,
+                            format!(
+                                "Failed to fetch update! {}",
+                                self.has_update.as_ref().err().unwrap()
+                            ),
+                        );
                     }
                 });
             })

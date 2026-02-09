@@ -1,7 +1,7 @@
 use std::{
     fs,
     hash::Hasher,
-    io::{Cursor, Read, Seek, SeekFrom, Write},
+    io::{Cursor, Read, Seek, SeekFrom},
     path::PathBuf,
 };
 
@@ -171,7 +171,7 @@ impl NinjaChunkObject {
         labels: &SAFileLabels,
         obj_start: u64,
         obj_base: u64,
-    ) -> Result<Box<Self>, NinjaParseError> {
+    ) -> Result<Self, NinjaParseError> {
         reader.seek(SeekFrom::Start(obj_start))?;
 
         let eval_flags = reader.read_u32::<LittleEndian>()?;
@@ -217,7 +217,7 @@ impl NinjaChunkObject {
             )?);
         }
 
-        let obj = Box::new(NinjaChunkObject {
+        Ok(NinjaChunkObject {
             name: labels.get_name(&obj_start, "object"),
             eval_flags,
             pos: Point3 {
@@ -236,14 +236,12 @@ impl NinjaChunkObject {
                 z: scl_z,
             },
             model: chunkmodel,
-            child,
-            sibling,
-        });
-
-        Ok(obj)
+            child: child.map(Box::from),
+            sibling: sibling.map(Box::from),
+        })
     }
 
-    pub fn new(buf: &[u8]) -> Result<Box<Self>, NinjaParseError> {
+    pub fn new(buf: &[u8]) -> Result<Self, NinjaParseError> {
         let mut rdr = Cursor::new(buf);
 
         let magic = rdr.read_u64::<LittleEndian>()?;
@@ -266,7 +264,7 @@ impl NinjaChunkObject {
         Self::from_buf(&mut rdr, &labels, model_off, 0)
     }
 
-    pub fn read_file(path: &PathBuf) -> Result<Box<Self>, NinjaParseError> {
+    pub fn read_file(path: &PathBuf) -> Result<Self, NinjaParseError> {
         let data: Vec<u8> = fs::read(path)?;
         Self::new(&data)
     }

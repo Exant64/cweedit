@@ -31,7 +31,7 @@ pub struct AccessoryEditProject {
     chao_draw: ChaoDraw,
     object_path: Option<PathBuf>,
     texture_name: Option<String>,
-    object: Option<Box<NinjaChunkObject>>,
+    object: Option<NinjaChunkObject>,
     texlist: Option<Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>>,
     accessory_data: Option<AccessoryData>,
     hide_parts: Vec<u8>,

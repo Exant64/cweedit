@@ -1,8 +1,4 @@
-use std::{
-    i32,
-    io::{Cursor, Read, Seek, SeekFrom},
-    u8,
-};
+use std::io::{Cursor, Read, Seek, SeekFrom};
 
 use byteorder::{LittleEndian, ReadBytesExt};
 

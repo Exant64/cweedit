@@ -23,8 +23,8 @@ pub struct ChaoGlobalState {
     pub al_body_texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
     pub al_eye_texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
     pub al_mouth_texlist: Rc<NinjaTexlist<NinjaGpuTexEntry, RenderState>>,
-    pub root_objects: Vec<Box<NinjaChunkObject>>,
-    pub masks: Vec<Box<NinjaChunkObject>>,
+    pub root_objects: Vec<NinjaChunkObject>,
+    pub masks: Vec<NinjaChunkObject>,
     pub palettes: [NinjaPalette; 39],
     pub stand_anim: NinjaMotion,
     pub crawl_anim: NinjaMotion,
@@ -43,7 +43,7 @@ impl ChaoGlobalState {
         panic!();
     }
 
-    fn load_model(filename: &str) -> Box<NinjaChunkObject> {
+    fn load_model(filename: &str) -> NinjaChunkObject {
         let mut f = File::open(filename)
             .inspect_err(|_| Self::error_dialog(&format!("Failed to open {}!", filename)))
             .unwrap();
@@ -71,64 +71,32 @@ impl ChaoGlobalState {
             .unwrap()
     }
 
-    fn load_masks() -> Vec<Box<NinjaChunkObject>> {
-        let mut models = Vec::new();
-
-        models.push(Self::load_model(
-            "res/masks/object_al_pumpkinhead_pumpkinhead.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_skullhead_skullhead.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_apple_mask_apple.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_bucket_mask_bucket.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_can_mask_can.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_cdbox_mask_cdbox.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_flowerpot_mask_flowerpot.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_paperbag_mask_paperbag.sa2mdl",
-        ));
-
+    fn load_masks() -> Vec<NinjaChunkObject> {
         let mut stewpan = Self::load_model("res/masks/object_al_mask_stewpan_mask_stewpan.sa2mdl");
         let mut stewpan_eye =
             Self::load_model("res/masks/object_al_mask_stewpan_eye_mask_stewpan_eye.sa2mdl");
-        stewpan_eye.sibling = Some(Self::load_model(
+        stewpan_eye.sibling = Some(Box::from(Self::load_model(
             "res/masks/object_al_mask_stewpan_jaw_mask_stewpan_jaw.sa2mdl",
-        ));
-        stewpan.sibling = Some(stewpan_eye);
+        )));
+        stewpan.sibling = Some(Box::from(stewpan_eye));
 
-        models.push(stewpan);
-
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_stump_mask_stump.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_wmelon_mask_wmelon.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_wool_a_mask_wool_a.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_wool_b_mask_wool_b.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mask_wool_c_mask_wool_c.sa2mdl",
-        ));
-        models.push(Self::load_model(
-            "res/masks/object_al_mzsk_teethingring_mzsk_teethingring.sa2mdl",
-        ));
-
-        models
+        vec![
+            Self::load_model("res/masks/object_al_pumpkinhead_pumpkinhead.sa2mdl"),
+            Self::load_model("res/masks/object_al_skullhead_skullhead.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_apple_mask_apple.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_bucket_mask_bucket.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_can_mask_can.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_cdbox_mask_cdbox.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_flowerpot_mask_flowerpot.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_paperbag_mask_paperbag.sa2mdl"),
+            stewpan,
+            Self::load_model("res/masks/object_al_mask_stump_mask_stump.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_wmelon_mask_wmelon.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_wool_a_mask_wool_a.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_wool_b_mask_wool_b.sa2mdl"),
+            Self::load_model("res/masks/object_al_mask_wool_c_mask_wool_c.sa2mdl"),
+            Self::load_model("res/masks/object_al_mzsk_teethingring_mzsk_teethingring.sa2mdl"),
+        ]
     }
 
     pub fn init(render_state: &RenderState) -> Self {
