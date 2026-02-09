@@ -18,6 +18,8 @@ pub struct ChunkModel {
     pub _r: f32,
 }
 
+pub type TriangleIndex = (usize, usize, usize);
+
 impl ChunkModel {
     pub fn export_c(&self, writer: &mut dyn Write) -> Result<String, std::fmt::Error> {
         let vertex_chunk_name =
@@ -87,8 +89,8 @@ impl ChunkModel {
         Ok(model_name)
     }
 
-    pub fn get_face_adjacency(&self) -> HashMap<(usize, usize, usize), Vec<(usize, usize, usize)>> {
-        let mut map: HashMap<(usize, usize), Vec<(usize, usize, usize)>> = HashMap::new();
+    pub fn get_face_adjacency(&self) -> HashMap<TriangleIndex, Vec<TriangleIndex>> {
+        let mut map: HashMap<(usize, usize), Vec<TriangleIndex>> = HashMap::new();
 
         if let Some(poly_list) = &self.poly_list {
             for (poly_index, poly) in poly_list.iter().enumerate() {
@@ -131,8 +133,7 @@ impl ChunkModel {
             }
         }
 
-        let mut adjacency: HashMap<(usize, usize, usize), Vec<(usize, usize, usize)>> =
-            HashMap::new();
+        let mut adjacency: HashMap<TriangleIndex, Vec<TriangleIndex>> = HashMap::new();
         map.iter().for_each(|((_, _), list)| {
             if list.len() == 2 {
                 if let Some(list0) = adjacency.get_mut(&(list[0])) {

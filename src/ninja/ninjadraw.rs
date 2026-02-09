@@ -133,6 +133,15 @@ pub struct NinjaDrawState {
     min_uniform_offset: usize,
 }
 
+struct NinjaDrawData<'a> {
+    data: &'a NinjaUniformEntry,
+    vertices: &'a [Vertex],
+    texture_view: Option<&'a TextureView>,
+    second_texture_view: Option<&'a TextureView>,
+    sampler: &'a NinjaSampler,
+    pipeline_settings: &'a NinjaPipeline,
+}
+
 impl NinjaDrawState {
     pub fn draw_entries(&self, rpass: &mut RenderPass) {
         rpass.set_vertex_buffer(0, self.vertex_buffer.slice(..));
@@ -246,35 +255,29 @@ impl NinjaDrawState {
         len
     }
 
-    fn push_draw(
-        &mut self,
-        device: &Device,
-        data: &NinjaUniformEntry,
-        vertices: &[Vertex],
-        texture_view: Option<&TextureView>,
-        second_texture_view: Option<&TextureView>,
-        sampler: &NinjaSampler,
-        pipeline_settings: &NinjaPipeline,
-    ) {
-        let vertex_start = self.push_vertices(vertices) as u32;
-        let uniform_start = self.push_constant_data(data) as u32;
+    fn push_draw(&mut self, device: &Device, draw_data: NinjaDrawData) {
+        let vertex_start = self.push_vertices(draw_data.vertices) as u32;
+        let uniform_start = self.push_constant_data(draw_data.data) as u32;
 
-        if !self.sampler_cache.contains_key(sampler) {
+        if !self.sampler_cache.contains_key(draw_data.sampler) {
             self.sampler_cache.insert(
-                sampler.clone(),
+                draw_data.sampler.clone(),
                 device.create_sampler(&wgpu::SamplerDescriptor {
-                    mag_filter: sampler.min_mag_filter,
-                    min_filter: sampler.min_mag_filter,
-                    mipmap_filter: sampler.mip_filter,
+                    mag_filter: draw_data.sampler.min_mag_filter,
+                    min_filter: draw_data.sampler.min_mag_filter,
+                    mipmap_filter: draw_data.sampler.mip_filter,
                     lod_min_clamp: 0.0,
-                    address_mode_u: sampler.address_mode_u,
-                    address_mode_v: sampler.address_mode_v,
+                    address_mode_u: draw_data.sampler.address_mode_u,
+                    address_mode_v: draw_data.sampler.address_mode_v,
                     ..Default::default()
                 }),
             );
         }
 
-        if !self.pipeline_cache.contains_key(pipeline_settings) {
+        if !self
+            .pipeline_cache
+            .contains_key(draw_data.pipeline_settings)
+        {
             // todo: this could be adjusted later on at runtime
             let vertex_buffer_layout = [wgpu::VertexBufferLayout {
                 array_stride: size_of::<Vertex>() as wgpu::BufferAddress,
@@ -303,9 +306,9 @@ impl NinjaDrawState {
                 ],
             }];
 
-            let (shader, pipeline_layout) = if !pipeline_settings.use_palette {
+            let (shader, pipeline_layout) = if !draw_data.pipeline_settings.use_palette {
                 (
-                    if !pipeline_settings.use_renderfix {
+                    if !draw_data.pipeline_settings.use_renderfix {
                         &self.regular_shader
                     } else {
                         &self.renderfix_shader
@@ -318,8 +321,8 @@ impl NinjaDrawState {
 
             let color_target = wgpu::ColorTargetState {
                 blend: Some(BlendState {
-                    color: pipeline_settings.blend_col,
-                    alpha: pipeline_settings.blend_alpha,
+                    color: draw_data.pipeline_settings.blend_col,
+                    alpha: draw_data.pipeline_settings.blend_alpha,
                 }),
                 write_mask: wgpu::ColorWrites::ALL,
                 ..self.swapchain_format
@@ -328,7 +331,7 @@ impl NinjaDrawState {
             let mut constants_map: HashMap<String, f64> = HashMap::new();
             constants_map.insert(
                 "use_texture".to_string(),
-                if pipeline_settings.use_texture {
+                if draw_data.pipeline_settings.use_texture {
                     1.0
                 } else {
                     0.0
@@ -336,7 +339,7 @@ impl NinjaDrawState {
             );
             constants_map.insert(
                 "has_normal".to_string(),
-                if pipeline_settings.has_normal {
+                if draw_data.pipeline_settings.has_normal {
                     1.0
                 } else {
                     0.0
@@ -344,7 +347,7 @@ impl NinjaDrawState {
             );
             constants_map.insert(
                 "has_vcolor".to_string(),
-                if pipeline_settings.has_vcolor {
+                if draw_data.pipeline_settings.has_vcolor {
                     1.0
                 } else {
                     0.0
@@ -352,7 +355,7 @@ impl NinjaDrawState {
             );
 
             self.pipeline_cache.insert(
-                pipeline_settings.clone(),
+                draw_data.pipeline_settings.clone(),
                 device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
                     label: None,
                     layout: Some(pipeline_layout),
@@ -373,7 +376,7 @@ impl NinjaDrawState {
                     }),
                     primitive: wgpu::PrimitiveState {
                         topology: wgpu::PrimitiveTopology::TriangleStrip,
-                        cull_mode: if !pipeline_settings.double_sided {
+                        cull_mode: if !draw_data.pipeline_settings.double_sided {
                             Some(wgpu::Face::Back)
                         } else {
                             None
@@ -382,7 +385,7 @@ impl NinjaDrawState {
                     },
                     depth_stencil: Some(wgpu::DepthStencilState {
                         format: DEPTH_FORMAT,
-                        depth_write_enabled: !pipeline_settings.use_alpha,
+                        depth_write_enabled: !draw_data.pipeline_settings.use_alpha,
                         depth_compare: wgpu::CompareFunction::LessEqual,
                         stencil: wgpu::StencilState::default(),
                         bias: wgpu::DepthBiasState::default(),
@@ -394,15 +397,15 @@ impl NinjaDrawState {
             );
         }
 
-        let texture = if let Some(tex) = texture_view {
+        let texture = if let Some(tex) = draw_data.texture_view {
             tex
         } else {
             &self.placeholder_tex
         };
 
-        let texture_bind_group = if let Some(second_tex) = second_texture_view {
+        let texture_bind_group = if let Some(second_tex) = draw_data.second_texture_view {
             device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: if !pipeline_settings.use_palette {
+                layout: if !draw_data.pipeline_settings.use_palette {
                     &self.regular_texture_bind_group_layout
                 } else {
                     &self.indexed_texture_bind_group_layout
@@ -411,7 +414,7 @@ impl NinjaDrawState {
                     wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::Sampler(
-                            self.sampler_cache.get(sampler).unwrap(),
+                            self.sampler_cache.get(draw_data.sampler).unwrap(),
                         ),
                     },
                     wgpu::BindGroupEntry {
@@ -427,7 +430,7 @@ impl NinjaDrawState {
             })
         } else {
             device.create_bind_group(&wgpu::BindGroupDescriptor {
-                layout: if !pipeline_settings.use_palette {
+                layout: if !draw_data.pipeline_settings.use_palette {
                     &self.regular_texture_bind_group_layout
                 } else {
                     &self.indexed_texture_bind_group_layout
@@ -436,7 +439,7 @@ impl NinjaDrawState {
                     wgpu::BindGroupEntry {
                         binding: 0,
                         resource: wgpu::BindingResource::Sampler(
-                            self.sampler_cache.get(sampler).unwrap(),
+                            self.sampler_cache.get(draw_data.sampler).unwrap(),
                         ),
                     },
                     wgpu::BindGroupEntry {
@@ -454,10 +457,10 @@ impl NinjaDrawState {
 
         self.draw_entries.push(NinjaDrawEntry {
             vertex_start,
-            vertex_end: vertices.len() as u32,
+            vertex_end: draw_data.vertices.len() as u32,
             uniform_offset: uniform_start,
             texture_bind_group,
-            pipeline_entry: pipeline_settings.clone(),
+            pipeline_entry: draw_data.pipeline_settings.clone(),
         });
     }
 }
@@ -1007,12 +1010,14 @@ impl NinjaState {
 
                     self.draw_state.lock().push_draw(
                         device,
-                        uniform_entry,
-                        vertices.as_slice(),
-                        tex_draw.current_texture,
-                        tex_draw.second_texture,
-                        sampler,
-                        pipeline_settings,
+                        NinjaDrawData {
+                            data: uniform_entry,
+                            vertices: vertices.as_slice(),
+                            texture_view: tex_draw.current_texture,
+                            second_texture_view: tex_draw.second_texture,
+                            sampler,
+                            pipeline_settings,
+                        },
                     );
                 }
                 _ => continue,

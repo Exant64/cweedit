@@ -23,16 +23,22 @@ pub const BALD_DEFAULT_CENTER: glam::Vec3 = glam::Vec3::new(0.0, 1.1, -0.01);
 pub const BALD_DEFAULT_RADIUS: f32 = 1.15;
 pub const BALD_DEFAULT_CLIP_FACE: bool = true;
 
-struct ChaoDraw {
+struct ChaoDraw<'a> {
+    chao_param: &'a ChaoParamGc,
     node_index: usize,
     slope_ang: i32,
     close_ang: i32,
     eye_tex_id: u16,
     mouth_tex_id: [u16; 2],
     node_matrices: [glam::Mat4; 40],
+    diff: &'a Vec<Point3>,
+    device: &'a wgpu::Device,
+    ninja_state: &'a Rc<RefCell<NinjaState>>,
+    chao_global_state: &'a Rc<ChaoGlobalState>,
+    motion: Option<(&'a NinjaMotion, f32)>,
 }
 
-impl ChaoDraw {
+impl<'a> ChaoDraw<'a> {
     fn set_chao_mode(&self, chao_param: &ChaoParamGc, ninja_state: &mut RefMut<'_, NinjaState>) {
         ninja_state.set_chao_mode(0, 0);
         if chao_param.body.jewel_num > 0 {
@@ -84,33 +90,23 @@ impl ChaoDraw {
         });
     }
 
-    pub fn draw_chao(
-        &mut self,
-        chao_param: &ChaoParamGc,
-        device: &wgpu::Device,
-        ninja_state: &Rc<RefCell<NinjaState>>,
-        chao_global_state: &Rc<ChaoGlobalState>,
-        obj: &mut NinjaChunkObject,
-        diff: &Vec<Point3>,
-        motion: Option<(&NinjaMotion, f32)>,
-        accessory: &Option<AccessoryData>,
-    ) {
+    pub fn draw_chao(&mut self, obj: &mut NinjaChunkObject, accessory: &Option<AccessoryData>) {
         {
-            let mut ninja = ninja_state.borrow_mut();
+            let mut ninja = self.ninja_state.borrow_mut();
 
             let mut can_draw = true;
 
             ninja.matrix_stack.push();
 
-            if let Some((motion, frame)) = motion {
+            if let Some((motion, frame)) = self.motion {
                 if let Some(mot_pos) = motion.get_motion_pos(self.node_index, frame) {
                     ninja
                         .matrix_stack
                         .translate(mot_pos.x, mot_pos.y, mot_pos.z);
                     ninja.matrix_stack.translate(
-                        diff[self.node_index].x,
-                        diff[self.node_index].y,
-                        diff[self.node_index].z,
+                        self.diff[self.node_index].x,
+                        self.diff[self.node_index].y,
+                        self.diff[self.node_index].z,
                     );
                 } else {
                     ninja
@@ -139,12 +135,13 @@ impl ChaoDraw {
 
             self.node_matrices[self.node_index] = ninja.matrix_stack.get();
 
-            if chao_param.body.obake_head > 0 {
+            if self.chao_param.body.obake_head > 0 {
                 if self.node_index == 16 {
                     ninja.draw(
-                        device,
-                        &chao_global_state.masks[(chao_param.body.obake_head - 1) as usize],
-                        &chao_global_state.al_body_texlist,
+                        self.device,
+                        &self.chao_global_state.masks
+                            [(self.chao_param.body.obake_head - 1) as usize],
+                        &self.chao_global_state.al_body_texlist,
                     );
                 }
 
@@ -173,11 +170,19 @@ impl ChaoDraw {
                     match self.node_index {
                         18 | 21 => {
                             Self::set_model_texid(mdl, &[self.eye_tex_id]);
-                            ninja.draw_mdl(device, mdl, &chao_global_state.al_eye_texlist);
+                            ninja.draw_mdl(
+                                self.device,
+                                mdl,
+                                &self.chao_global_state.al_eye_texlist,
+                            );
                         }
                         27 => {
                             Self::set_model_texid(mdl, &self.mouth_tex_id);
-                            ninja.draw_mdl(device, mdl, &chao_global_state.al_mouth_texlist);
+                            ninja.draw_mdl(
+                                self.device,
+                                mdl,
+                                &self.chao_global_state.al_mouth_texlist,
+                            );
                         }
                         19 | 22 => {
                             if self.close_ang != -16384 {
@@ -195,8 +200,12 @@ impl ChaoDraw {
                                         z: -self.slope_ang,
                                     });
                                 }
-                                self.set_chao_mode(chao_param, &mut ninja);
-                                ninja.draw_mdl(device, mdl, &chao_global_state.al_body_texlist);
+                                self.set_chao_mode(self.chao_param, &mut ninja);
+                                ninja.draw_mdl(
+                                    self.device,
+                                    mdl,
+                                    &self.chao_global_state.al_body_texlist,
+                                );
                             }
                         }
                         _ => {
@@ -237,8 +246,12 @@ impl ChaoDraw {
                                     ninja.set_bald(&influence, &center, radius, clip_face);
                                 }
                             }
-                            self.set_chao_mode(chao_param, &mut ninja);
-                            ninja.draw_mdl(device, mdl, &chao_global_state.al_body_texlist);
+                            self.set_chao_mode(self.chao_param, &mut ninja);
+                            ninja.draw_mdl(
+                                self.device,
+                                mdl,
+                                &self.chao_global_state.al_body_texlist,
+                            );
                             ninja.disable_bald();
                         }
                     }
@@ -251,31 +264,13 @@ impl ChaoDraw {
         }
 
         if let Some(child) = &mut obj.child {
-            self.draw_chao(
-                chao_param,
-                device,
-                ninja_state,
-                chao_global_state,
-                child,
-                diff,
-                motion,
-                accessory,
-            );
+            self.draw_chao(child, accessory);
         }
 
-        ninja_state.borrow_mut().matrix_stack.pop();
+        self.ninja_state.borrow_mut().matrix_stack.pop();
 
         if let Some(sibling) = &mut obj.sibling {
-            self.draw_chao(
-                chao_param,
-                device,
-                ninja_state,
-                chao_global_state,
-                sibling,
-                diff,
-                motion,
-                accessory,
-            );
+            self.draw_chao(sibling, accessory);
         }
     }
 }
@@ -353,26 +348,24 @@ impl Chao {
         let prev_rf_mode = ninja_state.borrow().get_renderfix();
 
         let mut chao_draw = ChaoDraw {
+            chao_param: &self.chao_param,
             node_index: 0,
             slope_ang: self.chao_face.get_eyelid_slope_ang(),
             close_ang: self.chao_face.get_eyelid_close_ang(),
             eye_tex_id: self.chao_face.eye_tex_id,
             mouth_tex_id: self.chao_face.mouth_tex_id,
             node_matrices: [Mat4::IDENTITY; 40],
+            diff: &self.chao_shape.diff,
+
+            device,
+            ninja_state,
+            chao_global_state: &self.chao_global_state,
+            motion,
         };
         chao_draw.node_index = 0;
 
         ninja_state.borrow_mut().set_renderfix(false);
-        chao_draw.draw_chao(
-            &self.chao_param,
-            device,
-            ninja_state,
-            &self.chao_global_state,
-            &mut self.chao_shape.chao_model,
-            &self.chao_shape.diff,
-            motion,
-            &self.accessory,
-        );
+        chao_draw.draw_chao(&mut self.chao_shape.chao_model, &self.accessory);
 
         if let Some(accessory) = &mut self.accessory {
             ninja_state

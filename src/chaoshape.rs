@@ -62,13 +62,17 @@ impl From<PaletteIndex> for usize {
     }
 }
 
-struct ChaoDeformParameters {
+struct ChaoDeformParameters<'a> {
     ratio_g: f32,
     ratio_h: f32,
     ratio_v: f32,
     div_ratio_h: f32,
     div_ratio_v: f32,
     alignment: f32,
+    zero_objects: &'a Vec<NinjaChunkObject>,
+    normal_objects: &'a Vec<NinjaChunkObject>,
+    horiz_objects: &'a Vec<NinjaChunkObject>,
+    vertical_objects: &'a Vec<NinjaChunkObject>,
 }
 
 struct ChaoShapeModelSet {
@@ -380,10 +384,6 @@ impl ChaoShape {
         index: &mut usize,
         object: &mut NinjaChunkObject,
         deform_parameters: &ChaoDeformParameters,
-        zero_objects: &Vec<NinjaChunkObject>,
-        normal_objects: &Vec<NinjaChunkObject>,
-        horizontal_objects: &Vec<NinjaChunkObject>,
-        vertical_objects: &Vec<NinjaChunkObject>,
     ) {
         let lerp_closure = |deform_parameters: &ChaoDeformParameters,
                             val_h: f32,
@@ -402,63 +402,74 @@ impl ChaoShape {
         if (PART_ATTR[*index] & PART_ATTR_NODE) != 0 {
             object.pos.x = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].pos.x,
-                vertical_objects[*index].pos.x,
-                normal_objects[*index].pos.x,
-                zero_objects[*index].pos.x,
+                deform_parameters.horiz_objects[*index].pos.x,
+                deform_parameters.vertical_objects[*index].pos.x,
+                deform_parameters.normal_objects[*index].pos.x,
+                deform_parameters.zero_objects[*index].pos.x,
             );
 
             object.pos.y = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].pos.y,
-                vertical_objects[*index].pos.y,
-                normal_objects[*index].pos.y,
-                zero_objects[*index].pos.y,
+                deform_parameters.horiz_objects[*index].pos.y,
+                deform_parameters.vertical_objects[*index].pos.y,
+                deform_parameters.normal_objects[*index].pos.y,
+                deform_parameters.zero_objects[*index].pos.y,
             );
 
             object.pos.z = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].pos.z,
-                vertical_objects[*index].pos.z,
-                normal_objects[*index].pos.z,
-                zero_objects[*index].pos.z,
+                deform_parameters.horiz_objects[*index].pos.z,
+                deform_parameters.vertical_objects[*index].pos.z,
+                deform_parameters.normal_objects[*index].pos.z,
+                deform_parameters.zero_objects[*index].pos.z,
             );
 
             object.ang.x = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].ang.x as f32,
-                vertical_objects[*index].ang.x as f32,
-                normal_objects[*index].ang.x as f32,
-                zero_objects[*index].ang.x as f32,
+                deform_parameters.horiz_objects[*index].ang.x as f32,
+                deform_parameters.vertical_objects[*index].ang.x as f32,
+                deform_parameters.normal_objects[*index].ang.x as f32,
+                deform_parameters.zero_objects[*index].ang.x as f32,
             ) as i32;
 
             object.ang.y = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].ang.y as f32,
-                vertical_objects[*index].ang.y as f32,
-                normal_objects[*index].ang.y as f32,
-                zero_objects[*index].ang.y as f32,
+                deform_parameters.horiz_objects[*index].ang.y as f32,
+                deform_parameters.vertical_objects[*index].ang.y as f32,
+                deform_parameters.normal_objects[*index].ang.y as f32,
+                deform_parameters.zero_objects[*index].ang.y as f32,
             ) as i32;
 
             object.ang.z = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].ang.z as f32,
-                vertical_objects[*index].ang.z as f32,
-                normal_objects[*index].ang.z as f32,
-                zero_objects[*index].ang.z as f32,
+                deform_parameters.horiz_objects[*index].ang.z as f32,
+                deform_parameters.vertical_objects[*index].ang.z as f32,
+                deform_parameters.normal_objects[*index].ang.z as f32,
+                deform_parameters.zero_objects[*index].ang.z as f32,
             ) as i32;
         }
 
         if (PART_ATTR[*index] & PART_ATTR_MODEL) != 0 {
             if let Some(model) = &mut object.model {
-                let zero_model = zero_objects[*index].model.as_ref().unwrap();
-                let normal_model = normal_objects[*index].model.as_ref().unwrap();
-                let horizontal_model = horizontal_objects[*index].model.as_ref().unwrap();
-                let vertical_model = vertical_objects[*index].model.as_ref().unwrap();
+                let zero_model = deform_parameters.zero_objects[*index]
+                    .model
+                    .as_ref()
+                    .unwrap();
+                let normal_model = deform_parameters.normal_objects[*index]
+                    .model
+                    .as_ref()
+                    .unwrap();
+                let horizontal_model = deform_parameters.horiz_objects[*index]
+                    .model
+                    .as_ref()
+                    .unwrap();
+                let vertical_model = deform_parameters.vertical_objects[*index]
+                    .model
+                    .as_ref()
+                    .unwrap();
 
                 if let Some(poly_list) = &mut model.poly_list {
-                    for x in 0..poly_list.len() {
-                        let poly = &mut poly_list[x];
+                    for (x, poly) in poly_list.iter_mut().enumerate() {
                         let zero_poly = &zero_model.poly_list.as_ref().unwrap()[x];
                         let normal_poly = &normal_model.poly_list.as_ref().unwrap()[x];
                         let horizontal_poly = &horizontal_model.poly_list.as_ref().unwrap()[x];
@@ -582,28 +593,12 @@ impl ChaoShape {
 
         if let Some(child) = &mut object.child {
             *index += 1;
-            Self::deform_object(
-                index,
-                child,
-                deform_parameters,
-                zero_objects,
-                normal_objects,
-                horizontal_objects,
-                vertical_objects,
-            );
+            Self::deform_object(index, child, deform_parameters);
         }
 
         if let Some(sibling) = &mut object.sibling {
             *index += 1;
-            Self::deform_object(
-                index,
-                sibling,
-                deform_parameters,
-                zero_objects,
-                normal_objects,
-                horizontal_objects,
-                vertical_objects,
-            );
+            Self::deform_object(index, sibling, deform_parameters);
         }
     }
 
@@ -611,10 +606,6 @@ impl ChaoShape {
         index: &mut usize,
         object: &mut NinjaChunkObject,
         deform_parameters: &ChaoDeformParameters,
-        zero_objects: &Vec<NinjaChunkObject>,
-        normal_objects: &Vec<NinjaChunkObject>,
-        horizontal_objects: &Vec<NinjaChunkObject>,
-        vertical_objects: &Vec<NinjaChunkObject>,
         alignment_zero_objects: &Vec<NinjaChunkObject>,
         alignment_normal_objects: &Vec<NinjaChunkObject>,
         alignment_horizontal_objects: &Vec<NinjaChunkObject>,
@@ -695,10 +686,10 @@ impl ChaoShape {
         if (PART_ATTR[*index] & PART_ATTR_NODE) != 0 {
             object.pos.x = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].pos.x,
-                vertical_objects[*index].pos.x,
-                normal_objects[*index].pos.x,
-                zero_objects[*index].pos.x,
+                deform_parameters.horiz_objects[*index].pos.x,
+                deform_parameters.vertical_objects[*index].pos.x,
+                deform_parameters.normal_objects[*index].pos.x,
+                deform_parameters.zero_objects[*index].pos.x,
                 alignment_horizontal_objects[*index].pos.x,
                 alignment_vertical_objects[*index].pos.x,
                 alignment_normal_objects[*index].pos.x,
@@ -707,10 +698,10 @@ impl ChaoShape {
 
             object.pos.y = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].pos.y,
-                vertical_objects[*index].pos.y,
-                normal_objects[*index].pos.y,
-                zero_objects[*index].pos.y,
+                deform_parameters.horiz_objects[*index].pos.y,
+                deform_parameters.vertical_objects[*index].pos.y,
+                deform_parameters.normal_objects[*index].pos.y,
+                deform_parameters.zero_objects[*index].pos.y,
                 alignment_horizontal_objects[*index].pos.y,
                 alignment_vertical_objects[*index].pos.y,
                 alignment_normal_objects[*index].pos.y,
@@ -719,10 +710,10 @@ impl ChaoShape {
 
             object.pos.z = lerp_closure(
                 deform_parameters,
-                horizontal_objects[*index].pos.z,
-                vertical_objects[*index].pos.z,
-                normal_objects[*index].pos.z,
-                zero_objects[*index].pos.z,
+                deform_parameters.horiz_objects[*index].pos.z,
+                deform_parameters.vertical_objects[*index].pos.z,
+                deform_parameters.normal_objects[*index].pos.z,
+                deform_parameters.zero_objects[*index].pos.z,
                 alignment_horizontal_objects[*index].pos.z,
                 alignment_vertical_objects[*index].pos.z,
                 alignment_normal_objects[*index].pos.z,
@@ -731,10 +722,10 @@ impl ChaoShape {
 
             object.ang.x = lerp_angle(
                 deform_parameters,
-                horizontal_objects[*index].ang.x as f32,
-                vertical_objects[*index].ang.x as f32,
-                normal_objects[*index].ang.x as f32,
-                zero_objects[*index].ang.x as f32,
+                deform_parameters.horiz_objects[*index].ang.x as f32,
+                deform_parameters.vertical_objects[*index].ang.x as f32,
+                deform_parameters.normal_objects[*index].ang.x as f32,
+                deform_parameters.zero_objects[*index].ang.x as f32,
                 alignment_horizontal_objects[*index].ang.x as f32,
                 alignment_vertical_objects[*index].ang.x as f32,
                 alignment_normal_objects[*index].ang.x as f32,
@@ -743,10 +734,10 @@ impl ChaoShape {
 
             object.ang.y = lerp_angle(
                 deform_parameters,
-                horizontal_objects[*index].ang.y as f32,
-                vertical_objects[*index].ang.y as f32,
-                normal_objects[*index].ang.y as f32,
-                zero_objects[*index].ang.y as f32,
+                deform_parameters.horiz_objects[*index].ang.y as f32,
+                deform_parameters.vertical_objects[*index].ang.y as f32,
+                deform_parameters.normal_objects[*index].ang.y as f32,
+                deform_parameters.zero_objects[*index].ang.y as f32,
                 alignment_horizontal_objects[*index].ang.y as f32,
                 alignment_vertical_objects[*index].ang.y as f32,
                 alignment_normal_objects[*index].ang.y as f32,
@@ -755,10 +746,10 @@ impl ChaoShape {
 
             object.ang.z = lerp_angle(
                 deform_parameters,
-                horizontal_objects[*index].ang.z as f32,
-                vertical_objects[*index].ang.z as f32,
-                normal_objects[*index].ang.z as f32,
-                zero_objects[*index].ang.z as f32,
+                deform_parameters.horiz_objects[*index].ang.z as f32,
+                deform_parameters.vertical_objects[*index].ang.z as f32,
+                deform_parameters.normal_objects[*index].ang.z as f32,
+                deform_parameters.zero_objects[*index].ang.z as f32,
                 alignment_horizontal_objects[*index].ang.z as f32,
                 alignment_vertical_objects[*index].ang.z as f32,
                 alignment_normal_objects[*index].ang.z as f32,
@@ -768,10 +759,22 @@ impl ChaoShape {
 
         if (PART_ATTR[*index] & PART_ATTR_MODEL) != 0 {
             if let Some(model) = &mut object.model {
-                let zero_model = zero_objects[*index].model.as_ref().unwrap();
-                let normal_model = normal_objects[*index].model.as_ref().unwrap();
-                let horizontal_model = horizontal_objects[*index].model.as_ref().unwrap();
-                let vertical_model = vertical_objects[*index].model.as_ref().unwrap();
+                let zero_model = deform_parameters.zero_objects[*index]
+                    .model
+                    .as_ref()
+                    .unwrap();
+                let normal_model = deform_parameters.normal_objects[*index]
+                    .model
+                    .as_ref()
+                    .unwrap();
+                let horizontal_model = deform_parameters.horiz_objects[*index]
+                    .model
+                    .as_ref()
+                    .unwrap();
+                let vertical_model = deform_parameters.vertical_objects[*index]
+                    .model
+                    .as_ref()
+                    .unwrap();
                 let alignment_zero_model = alignment_zero_objects[*index].model.as_ref().unwrap();
                 let alignment_normal_model =
                     alignment_normal_objects[*index].model.as_ref().unwrap();
@@ -781,8 +784,7 @@ impl ChaoShape {
                     alignment_vertical_objects[*index].model.as_ref().unwrap();
 
                 if let Some(poly_list) = &mut model.poly_list {
-                    for x in 0..poly_list.len() {
-                        let poly = &mut poly_list[x];
+                    for (x, poly) in poly_list.iter_mut().enumerate() {
                         let zero_poly = &zero_model.poly_list.as_ref().unwrap()[x];
                         let normal_poly = &normal_model.poly_list.as_ref().unwrap()[x];
                         let horizontal_poly = &horizontal_model.poly_list.as_ref().unwrap()[x];
@@ -924,10 +926,6 @@ impl ChaoShape {
                 index,
                 child,
                 deform_parameters,
-                zero_objects,
-                normal_objects,
-                horizontal_objects,
-                vertical_objects,
                 alignment_zero_objects,
                 alignment_normal_objects,
                 alignment_horizontal_objects,
@@ -941,10 +939,6 @@ impl ChaoShape {
                 index,
                 sibling,
                 deform_parameters,
-                zero_objects,
-                normal_objects,
-                horizontal_objects,
-                vertical_objects,
                 alignment_zero_objects,
                 alignment_normal_objects,
                 alignment_horizontal_objects,
@@ -966,7 +960,7 @@ impl ChaoShape {
             &self.normal_models.fly
         };
 
-        let vert_objects = if ratio_v < 0.0 {
+        let vertical_objects = if ratio_v < 0.0 {
             &self.normal_models.run
         } else {
             &self.normal_models.power
@@ -995,6 +989,10 @@ impl ChaoShape {
             div_ratio_h,
             div_ratio_v,
             alignment: chao_param.body.a_pos.abs(),
+            zero_objects,
+            normal_objects,
+            horiz_objects,
+            vertical_objects,
         };
 
         let mut index = 0usize;
@@ -1023,25 +1021,13 @@ impl ChaoShape {
                 &mut index,
                 &mut self.chao_model,
                 &deform_params,
-                zero_objects,
-                normal_objects,
-                horiz_objects,
-                vert_objects,
                 alignment_zero_objects,
                 alignment_normal_objects,
                 alignment_horiz_objects,
                 alignment_vert_objects,
             );
         } else {
-            Self::deform_object(
-                &mut index,
-                &mut self.chao_model,
-                &deform_params,
-                zero_objects,
-                normal_objects,
-                horiz_objects,
-                vert_objects,
-            );
+            Self::deform_object(&mut index, &mut self.chao_model, &deform_params);
         }
 
         self.use_adjacency_indices();
