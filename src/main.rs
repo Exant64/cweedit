@@ -116,7 +116,7 @@ impl eframe::App for GameState {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if let Ok(has_update) = self.has_update {
                         if has_update {
-                            ui.colored_label(Color32::LIGHT_GREEN, "Update available!");
+                            ui.hyperlink_to("Update available!", "https://github.com/Exant64/cweedit/releases/latest");
                         }
                     } else {
                         ui.colored_label(
