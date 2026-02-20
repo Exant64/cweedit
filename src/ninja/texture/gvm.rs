@@ -17,6 +17,7 @@ pub enum PixelFormat {
     Index4,
     Dxt1,
     Dxt5,
+    Abgr8888
 }
 
 impl From<u8> for PixelFormat {
@@ -39,6 +40,7 @@ impl From<ddsfile::D3DFormat> for PixelFormat {
             ddsfile::D3DFormat::A1R5G5B5 => Self::Rgb5a3, // this might be incorrect, but i don't recall any sa2 dds using this anyways
             ddsfile::D3DFormat::DXT1 => Self::Dxt1,
             ddsfile::D3DFormat::DXT5 => Self::Dxt5,
+            ddsfile::D3DFormat::A8B8G8R8 => Self::Abgr8888,
             _ => unimplemented!("{:?}", value),
         }
     }
@@ -53,6 +55,7 @@ impl PixelFormat {
             Self::Index4 => wgpu::TextureFormat::R8Uint,
             Self::Dxt1 => wgpu::TextureFormat::Bc1RgbaUnorm, // bc1?
             Self::Dxt5 => wgpu::TextureFormat::Bc3RgbaUnorm,
+            Self::Abgr8888 => wgpu::TextureFormat::Rgba8Unorm
         }
     }
 

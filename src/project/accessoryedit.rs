@@ -188,7 +188,7 @@ impl Project for AccessoryEditProject {
                 ));
             },
             |ui| {
-                ui.label("Enables Render Fix \"Normal Draw\" support for the accessory. This is recommended!\nIt enables proper Ambient and Specular material color support (including the exponent for specular values), and proper double-sided lighting.");
+                ui.label("Enables Render Fix \"Normal Draw\" support for the accessory. This is recommended!\nIt enables proper Ambient and Specular material color support (including the exponent for specular values), texture filter options, vertex colored accessories, and proper double-sided lighting.");
             },
         );
 
