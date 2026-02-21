@@ -327,7 +327,7 @@ pub fn main() {
     options.wgpu_options.wgpu_setup = WgpuSetup::CreateNew(setup);
 
     eframe::run_native(
-        "Chao World Extended Editor",
+        &format!("Chao World Extended Editor ({})", cargo_crate_version!()),
         options,
         Box::new(|cc: &CreationContext<'_>| {
             cc.egui_ctx.set_theme(egui::Theme::Dark);
