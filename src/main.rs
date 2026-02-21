@@ -37,6 +37,7 @@ struct GameState {
     ninja_state: Rc<RefCell<NinjaState>>,
     chao_global_state: Rc<ChaoGlobalState>,
     current_project: Option<Box<dyn Project>>,
+    to_be_project: Option<Box<dyn Project>>,
 }
 
 impl eframe::App for GameState {
@@ -71,7 +72,7 @@ impl eframe::App for GameState {
         self.render(&frame.wgpu_render_state().unwrap().device);
 
         let mut delete_dialog = false;
-        if let Some(proj) = &mut self.current_project {
+        if let Some(proj) = &mut self.to_be_project {
             let open_result = proj.open_dialog(ctx, frame);
             if let Ok(result) = open_result {
                 delete_dialog = !result;
@@ -80,11 +81,16 @@ impl eframe::App for GameState {
                     .set_title("Error")
                     .set_description(format!("Operation failed: {}", err))
                     .show();
+
+                delete_dialog = true;
             }
         }
 
         if delete_dialog {
-            self.current_project = None;
+            self.to_be_project = None;
+        }
+        else if let Some(_) = &self.to_be_project{
+            self.current_project = self.to_be_project.take();
         }
 
         let request_redraw = if let Some(proj) = &mut self.current_project {
@@ -97,7 +103,7 @@ impl eframe::App for GameState {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
                     if ui.button("New Accessory JSON").clicked() {
-                        self.current_project = Some(Box::new(AccessoryEditProject::new(
+                        self.to_be_project = Some(Box::new(AccessoryEditProject::new(
                             &self.chao_global_state,
                             true,
                         )));
@@ -105,7 +111,7 @@ impl eframe::App for GameState {
                     }
 
                     if ui.button("Open Accessory JSON").clicked() {
-                        self.current_project = Some(Box::new(AccessoryEditProject::new(
+                        self.to_be_project = Some(Box::new(AccessoryEditProject::new(
                             &self.chao_global_state,
                             false,
                         )));
@@ -239,6 +245,7 @@ impl GameState {
         Self {
             has_update,
             current_project: None,
+            to_be_project: None,
             drag_angle: NinjaRotation { x: 0, y: 0, z: 0 },
             dist: 0.0,
             ninja_state: Rc::new(RefCell::new(ninja_state)),
