@@ -64,27 +64,19 @@ impl AccessoryData {
         self.renderfix_preview
     }
 
-    fn safety_check_before_save(&self, json_path: &Path) -> std::result::Result<&str, String> {
-        let relative_object_path = if let Some(obj_path) = &self.object_path {
-            obj_path
-                .as_path()
-                .strip_prefix(
-                    json_path
-                        .parent()
-                        .ok_or("Failed to retrieve parent of path!")?,
-                )
-                .map_err(|_| "Object path isn't starting from CWE/Accessories")
-        } else {
-            Err("object_path is empty!")
-        }?
-        .to_str()
-        .ok_or("Failed to convert final model path to string!")?;
-
-        if self.id.is_empty() {
-            return Err("ID cannot be empty!".into());
-        }
-
-        Ok(relative_object_path)
+    pub fn safety_check_object_path_before_save<'a>(
+        obj_path: &'a Path,
+        json_path: &Path,
+    ) -> std::result::Result<&'a str, String> {
+        Ok(obj_path
+            .strip_prefix(
+                json_path
+                    .parent()
+                    .ok_or("Failed to retrieve parent of JSON path!")?,
+            )
+            .map_err(|_| "Object path isn't starting from CWE/Accessories")?
+            .to_str()
+            .ok_or("Failed to convert final model path to string!")?)
     }
 
     pub fn save_json(
@@ -92,7 +84,15 @@ impl AccessoryData {
         market_data: &MarketData,
         json_path: &PathBuf,
     ) -> std::result::Result<(), String> {
-        let relative_object_path = self.safety_check_before_save(json_path)?;
+        if self.id.is_empty() {
+            return Err("ID cannot be empty!".into());
+        }
+
+        let relative_object_path = if let Some(obj_path) = &self.object_path {
+            AccessoryData::safety_check_object_path_before_save(obj_path.as_path(), json_path)
+        } else {
+            Err("object_path is empty!".into())
+        }?;
 
         let json_colors = self
             .material_slots

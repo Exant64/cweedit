@@ -258,18 +258,27 @@ impl Project for AccessoryEditProject {
             );
 
             if ui.button("Select").clicked() {
-                if let Some(picked) = open_file_dialog("SA2MDL file", &["sa2mdl"]) {
-                    let picked_clone = picked.clone();
-                    if self.object_path != Some(picked_clone) {
-                        self.object = NinjaChunkObject::read_file(&picked.clone()).ok();
-                        self.object_path = Some(picked);
+                if let Some(json_path) = &self.json_path {
+                    if let Some(picked) = open_file_dialog("SA2MDL file", &["sa2mdl"]) {
+                        if let Err(str) = AccessoryData::safety_check_object_path_before_save(
+                            picked.as_path(),
+                            json_path.as_path(),
+                        ) {
+                            show_error(str);
+                        } else {
+                            let picked_clone = picked.clone();
+                            if self.object_path != Some(picked_clone) {
+                                self.object = NinjaChunkObject::read_file(&picked.clone()).ok();
+                                self.object_path = Some(picked);
 
-                        self.material_backup_color.clear();
-                        self.material_highlight_material_select = None;
-                        self.material_highlight_node_select = None;
-                        self.material_slot_users.clear();
+                                self.material_backup_color.clear();
+                                self.material_highlight_material_select = None;
+                                self.material_highlight_node_select = None;
+                                self.material_slot_users.clear();
 
-                        self.check_update();
+                                self.check_update();
+                            }
+                        }
                     }
                 }
             }
