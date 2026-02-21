@@ -65,7 +65,7 @@ fn vs_main(
     
     // technically i think it should be -LIGHT_DIRECTION, keeping it like this for now though
     // in real RF this is supposed to support multiple lights but we don't really need that
-    result.intensity = dot(normalize(normal), uniformData.light_direction) * LIGHT_INTENSITY;
+    result.intensity = dot(normal, uniformData.light_direction) * LIGHT_INTENSITY;
 
     result.vcolor = vcolor;
 
@@ -87,7 +87,7 @@ fn fs_main(vertex: VertexOutput, @builtin(front_facing) is_front: bool) -> @loca
     intensity = max(intensity, 0.0);
 
     if uniformData.use_env != 0 || uniformData.chao_mode == 1 || uniformData.chao_mode == 3 {
-        uv = normalize(vertex.normal).xy * 0.5 + vec2<f32>(0.5, 0.5);
+        uv = vertex.normal.xy * 0.5 + vec2<f32>(0.5, 0.5);
     }
 
     var diffuse_tex_color: vec4f;
