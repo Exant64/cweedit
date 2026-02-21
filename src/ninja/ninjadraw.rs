@@ -1066,11 +1066,10 @@ impl NinjaState {
                         let mut transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
                         let mut transformed_normal = if self.use_renderfix {
                             mvp * glam::vec4(n.x, n.y, n.z, 0.0)
-                        }
-                        else {
+                        } else {
                             mvp_inv_trans * glam::vec4(n.x, n.y, n.z, 0.0)
                         };
-                        
+
                         transformed_position.x *= weight;
                         transformed_position.y *= weight;
                         transformed_position.z *= weight;
@@ -1154,8 +1153,7 @@ impl NinjaState {
                         let transformed_position = mvp * glam::vec4(p.x, p.y, p.z, 1.0);
                         let transformed_normal = if self.use_renderfix {
                             mvp * glam::vec4(n.x, n.y, n.z, 0.0)
-                        }
-                        else {
+                        } else {
                             mvp_inv_trans * glam::vec4(n.x, n.y, n.z, 0.0)
                         };
 

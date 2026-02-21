@@ -38,7 +38,7 @@ struct ChaoDraw<'a> {
     motion: Option<(&'a NinjaMotion, f32)>,
 }
 
-impl<'a> ChaoDraw<'a> {
+impl ChaoDraw<'_> {
     fn set_chao_mode(&self, chao_param: &ChaoParamGc, ninja_state: &mut RefMut<'_, NinjaState>) {
         ninja_state.set_chao_mode(0, 0);
         if chao_param.body.jewel_num > 0 {

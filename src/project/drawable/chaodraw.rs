@@ -1,4 +1,4 @@
-use std::{cell::RefCell, collections::HashMap, path::PathBuf, rc::Rc};
+use std::{cell::RefCell, collections::HashMap, path::Path, rc::Rc};
 
 use egui::Ui;
 
@@ -153,7 +153,7 @@ impl ChaoDraw {
         self.chao.update();
     }
 
-    pub fn new(chao_global_state: &Rc<ChaoGlobalState>, _chao_path: &PathBuf) -> Self {
+    pub fn new(chao_global_state: &Rc<ChaoGlobalState>, _chao_path: &Path) -> Self {
         Self {
             chao: Chao::create(chao_global_state, &ChaoParamGc::default()),
             motions: [

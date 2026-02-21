@@ -88,8 +88,7 @@ impl eframe::App for GameState {
 
         if delete_dialog {
             self.to_be_project = None;
-        }
-        else if let Some(_) = &self.to_be_project{
+        } else if self.to_be_project.is_some() {
             self.current_project = self.to_be_project.take();
         }
 
@@ -122,7 +121,10 @@ impl eframe::App for GameState {
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if let Ok(has_update) = self.has_update {
                         if has_update {
-                            ui.hyperlink_to("Update available!", "https://github.com/Exant64/cweedit/releases/latest");
+                            ui.hyperlink_to(
+                                "Update available!",
+                                "https://github.com/Exant64/cweedit/releases/latest",
+                            );
                         }
                     } else {
                         ui.colored_label(

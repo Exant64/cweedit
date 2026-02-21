@@ -17,7 +17,7 @@ pub enum PixelFormat {
     Index4,
     Dxt1,
     Dxt5,
-    Abgr8888
+    Abgr8888,
 }
 
 impl From<u8> for PixelFormat {
@@ -55,7 +55,7 @@ impl PixelFormat {
             Self::Index4 => wgpu::TextureFormat::R8Uint,
             Self::Dxt1 => wgpu::TextureFormat::Bc1RgbaUnorm, // bc1?
             Self::Dxt5 => wgpu::TextureFormat::Bc3RgbaUnorm,
-            Self::Abgr8888 => wgpu::TextureFormat::Rgba8Unorm
+            Self::Abgr8888 => wgpu::TextureFormat::Rgba8Unorm,
         }
     }
 
