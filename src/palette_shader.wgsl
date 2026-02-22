@@ -63,30 +63,29 @@ fn vs_main(
 }
 
 @group(1) @binding(0) var diffuse_texture_sampler : sampler;
-@group(1) @binding(1) var diffuse_texture : texture_2d<u32>;
+@group(1) @binding(1) var diffuse_texture : texture_2d<f32>;
 @group(1) @binding(2) var shiny_texture : texture_2d<f32>;
 
 @fragment
 fn fs_main(vertex: VertexOutput) -> @location(0) vec4<f32> {
-    //let tex = textureLoad(r_color, vec2<i32>(vertex.tex_coord * 256.0), 0);
-    //let v = f32(tex.x) / 255.0;
+    // rewritten this using flycast code as reference, thank you flycast devs
 
-    let integer_size = i32(uniformData.texture_size) - 1;
-    var texcoord_left = vec2<i32>(vertex.tex_coord * uniformData.texture_size);
-    texcoord_left.x = clamp(texcoord_left.x, 0, integer_size);
-    texcoord_left.y = clamp(texcoord_left.y, 0, integer_size);
+    let pix_coord = vertex.tex_coord * uniformData.texture_size - 0.5;
+    let origin = floor(pix_coord);
 
-    let index_top_left: u32 = textureLoad(diffuse_texture, texcoord_left, 0).r / 17;
-    let index_top_right: u32 = textureLoad(diffuse_texture, texcoord_left + vec2<i32>(1,0), 0).r / 17;
-    let index_bottom_left: u32 = textureLoad(diffuse_texture, texcoord_left + vec2<i32>(0,1), 0).r / 17;
-    let index_bottom_right: u32 = textureLoad(diffuse_texture, texcoord_left+ vec2<i32>(1,1) , 0).r / 17;
+    let sample_uv = (origin + 0.5) / uniformData.texture_size;
+
+    let index_top_left: u32 = u32(floor(textureSample(diffuse_texture, diffuse_texture_sampler, sample_uv).r * 255)) / 17;
+    let index_top_right: u32 = u32(floor(textureSample(diffuse_texture, diffuse_texture_sampler, sample_uv, vec2<i32>(1,0)).r * 255)) / 17;
+    let index_bottom_left: u32 = u32(floor(textureSample(diffuse_texture, diffuse_texture_sampler, sample_uv, vec2<i32>(0,1)).r * 255)) / 17;
+    let index_bottom_right: u32 = u32(floor(textureSample(diffuse_texture, diffuse_texture_sampler, sample_uv, vec2<i32>(1,1)).r * 255)) / 17;
 
     let color_top_left = uniformData.palette_colors[index_top_left + uniformData.palette_index];
     let color_top_right = uniformData.palette_colors[index_top_right + uniformData.palette_index];
     let color_bottom_left = uniformData.palette_colors[index_bottom_left + uniformData.palette_index];
     let color_bottom_right = uniformData.palette_colors[index_bottom_right + uniformData.palette_index];
 
-    let f = fract(vertex.tex_coord * uniformData.texture_size);
+    let f = pix_coord - origin;
 
     let top = mix(color_top_left, color_top_right, f.x);
     let bottom = mix(color_bottom_left, color_bottom_right, f.x);

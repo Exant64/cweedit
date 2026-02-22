@@ -52,7 +52,7 @@ impl PixelFormat {
             Self::Rgb565 => wgpu::TextureFormat::Rgba8Unorm,
             Self::Rgb5a3 => wgpu::TextureFormat::Rgba8Unorm,
             Self::Argb8888 => wgpu::TextureFormat::Rgba8Unorm,
-            Self::Index4 => wgpu::TextureFormat::R8Uint,
+            Self::Index4 => wgpu::TextureFormat::R8Unorm,
             Self::Dxt1 => wgpu::TextureFormat::Bc1RgbaUnorm, // bc1?
             Self::Dxt5 => wgpu::TextureFormat::Bc3RgbaUnorm,
             Self::Abgr8888 => wgpu::TextureFormat::Rgba8Unorm,

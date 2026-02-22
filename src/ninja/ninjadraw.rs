@@ -260,11 +260,21 @@ impl NinjaDrawState {
         let uniform_start = self.push_constant_data(draw_data.data) as u32;
 
         if !self.sampler_cache.contains_key(draw_data.sampler) {
+            // indexed textures cannot be bilinear filtered, force them to be point
+            // we have to use floats for the texture unfortunately to leverage texture tiling from textureSample
+            // u32s cannot be textureSample'd
+            let min_mag_filter = if draw_data.pipeline_settings.use_palette {
+                wgpu::FilterMode::Nearest
+            }
+            else {
+                draw_data.sampler.min_mag_filter
+            };
+
             self.sampler_cache.insert(
                 draw_data.sampler.clone(),
                 device.create_sampler(&wgpu::SamplerDescriptor {
-                    mag_filter: draw_data.sampler.min_mag_filter,
-                    min_filter: draw_data.sampler.min_mag_filter,
+                    mag_filter: min_mag_filter,
+                    min_filter: min_mag_filter,
                     mipmap_filter: draw_data.sampler.mip_filter,
                     lod_min_clamp: 0.0,
                     address_mode_u: draw_data.sampler.address_mode_u,
@@ -653,7 +663,7 @@ impl NinjaState {
                         visibility: wgpu::ShaderStages::FRAGMENT,
                         ty: wgpu::BindingType::Texture {
                             multisampled: false,
-                            sample_type: wgpu::TextureSampleType::Uint,
+                            sample_type: wgpu::TextureSampleType::Float { filterable: true },
                             view_dimension: wgpu::TextureViewDimension::D2,
                         },
                         count: None,
