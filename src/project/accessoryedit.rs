@@ -1,5 +1,6 @@
 use std::{collections::HashMap, path::PathBuf, rc::Rc, str::FromStr};
 
+use egui::Color32;
 use egui_wgpu::RenderState;
 use rfd::MessageDialogResult;
 
@@ -21,6 +22,10 @@ use super::{
     drawable::{chaodraw::ChaoDraw, Drawable},
     open_file_dialog, tooltip_helper, Project,
 };
+
+const CHANGED_VISUAL: u32 = 1 << 0;
+const CHANGED_FILE: u32 = 1 << 1;
+const CHANGED_ALL: u32 = CHANGED_VISUAL | CHANGED_FILE;
 
 pub struct AccessoryEditProject {
     disable_accessory_preview: bool,
@@ -57,6 +62,8 @@ pub struct AccessoryEditProject {
     selected_slot: usize,
     material_slot_users: HashMap<(usize, usize), usize>,
     material_slots: [Color; 8],
+
+    unsaved_changes: bool,
 }
 
 impl Project for AccessoryEditProject {
@@ -145,56 +152,75 @@ impl Project for AccessoryEditProject {
     }
 
     fn side_panel(&mut self, ctx: &egui::Context, frame: &eframe::Frame, ui: &mut egui::Ui) {
+        let changed = self.panel_elements(ctx, frame, ui);
+
+        if (changed & CHANGED_FILE) != 0 {
+            self.unsaved_changes = true;
+        }
+
+        if (changed & CHANGED_VISUAL) != 0 {
+            self.check_update();
+        }
+    }
+}
+
+impl AccessoryEditProject {
+    fn panel_elements(
+        &mut self,
+        ctx: &egui::Context,
+        frame: &eframe::Frame,
+        ui: &mut egui::Ui,
+    ) -> u32 {
+        let mut changed: u32 = 0;
+
         ui.heading("Preview Settings");
         ui.collapsing("Chao Preview", |ui| {
             self.chao_draw.chao_preview_edit(ui, ctx);
         });
 
-        let disable_preview = self.disable_accessory_preview;
         tooltip_helper(
             ui,
             |ui| {
-                ui.add(egui::Checkbox::new(
-                    &mut self.disable_accessory_preview,
-                    "Disable Accessory Preview",
-                ));
+                if ui
+                    .checkbox(
+                        &mut self.disable_accessory_preview,
+                        "Disable Accessory Preview",
+                    )
+                    .changed()
+                {
+                    changed |= CHANGED_VISUAL;
+                }
             },
             |ui| {
                 ui.label("Disables showing the accessory on the Chao in the preview panel");
             },
         );
-        if disable_preview != self.disable_accessory_preview {
-            self.check_update();
-        }
 
         if ui
             .checkbox(&mut self.renderfix_preview, "Render Fix Preview")
             .changed()
         {
-            self.check_update();
+            changed |= CHANGED_VISUAL;
         }
 
         ui.separator();
 
         ui.heading("Accessory Settings");
 
-        let use_renderfix = self.use_renderfix;
         tooltip_helper(
             ui,
             |ui| {
-                ui.add(egui::Checkbox::new(
-                    &mut self.use_renderfix,
-                    "Supports Render Fix",
-                ));
+                if ui
+                    .checkbox(&mut self.use_renderfix, "Supports Render Fix")
+                    .changed()
+                {
+                    changed |= CHANGED_ALL;
+                }
             },
             |ui| {
                 ui.label("Enables Render Fix \"Normal Draw\" support for the accessory. This is recommended!\nIt enables proper Ambient and Specular material color support (including the exponent for specular values), texture filter options, vertex colored accessories, and proper double-sided lighting.");
             },
         );
-
-        if use_renderfix != self.use_renderfix {
-            self.check_update();
-        }
 
         tooltip_helper(
             ui,
@@ -210,6 +236,7 @@ impl Project for AccessoryEditProject {
                         self.id.truncate(20);
                         if let Some(data) = &mut self.accessory_data {
                             data.id = self.id.clone();
+                            changed |= CHANGED_ALL;
                         }
                     }
                 });
@@ -237,6 +264,7 @@ impl Project for AccessoryEditProject {
                                 self.id = new_id;
                                 if let Some(data) = &mut self.accessory_data {
                                     data.id = self.id.clone();
+                                    changed |= CHANGED_ALL;
                                 }
                             }
                         }
@@ -276,7 +304,7 @@ impl Project for AccessoryEditProject {
                                 self.material_highlight_node_select = None;
                                 self.material_slot_users.clear();
 
-                                self.check_update();
+                                changed |= CHANGED_ALL;
                             }
                         }
                     }
@@ -286,7 +314,7 @@ impl Project for AccessoryEditProject {
             if let Some(path) = &self.object_path {
                 if ui.button("Reload").clicked() {
                     self.object = NinjaChunkObject::read_file(path).ok();
-                    self.check_update();
+                    changed |= CHANGED_VISUAL;
                 }
             }
         });
@@ -310,7 +338,7 @@ impl Project for AccessoryEditProject {
                                     self.texlist = Some(Rc::new(texlist));
                                     self.texture_name = Some(path_str.to_string());
 
-                                    self.check_update();
+                                    changed |= CHANGED_ALL;
                                 } else {
                                     show_error("Failed to load texture! Invalid format?");
                                 }
@@ -366,7 +394,7 @@ impl Project for AccessoryEditProject {
         );
 
         if prev_accessory_type != self.accessory_type {
-            self.check_update();
+            changed |= CHANGED_ALL;
         }
 
         let bald_mode_prev = self.bald_mode.clone();
@@ -389,30 +417,44 @@ impl Project for AccessoryEditProject {
         );
 
         if bald_mode_prev != self.bald_mode {
-            self.check_update();
+            changed |= CHANGED_ALL;
         }
 
         match self.bald_mode {
             BaldMode::None => {}
             BaldMode::Presets => {
                 ui.collapsing("Bald Settings", |ui| {
-                    ui.add(egui::Checkbox::new(
-                        &mut self.bald_dont_hide_hparts,
-                        "Don't hide head parts",
-                    ));
-                    ui.checkbox(&mut self.bald_preset_sides[0], "Side (X)");
-                    ui.checkbox(&mut self.bald_preset_sides[1], "Top (Y)");
-                    ui.checkbox(&mut self.bald_preset_sides[2], "Back (Z)");
+                    let mut bald_changed = false;
+                    bald_changed = ui
+                        .checkbox(&mut self.bald_dont_hide_hparts, "Don't hide head parts")
+                        .changed()
+                        || bald_changed;
+                    bald_changed = ui
+                        .checkbox(&mut self.bald_preset_sides[0], "Side (X)")
+                        .changed()
+                        || bald_changed;
+                    bald_changed = ui
+                        .checkbox(&mut self.bald_preset_sides[1], "Top (Y)")
+                        .changed()
+                        || bald_changed;
+                    bald_changed = ui
+                        .checkbox(&mut self.bald_preset_sides[2], "Back (Z)")
+                        .changed()
+                        || bald_changed;
 
-                    self.check_update();
+                    if bald_changed {
+                        changed |= CHANGED_ALL;
+                    }
                 });
             }
             BaldMode::Custom => {
                 ui.collapsing("Advanced Bald Settings", |ui| {
-                    ui.add(egui::Checkbox::new(
+                    if ui.checkbox(
                         &mut self.bald_dont_hide_hparts,
                         "Don't hide head parts",
-                    ));
+                    ).changed() {
+                        changed |= CHANGED_ALL;
+                    }
 
                     tooltip_helper(
                         ui,
@@ -440,9 +482,14 @@ impl Project for AccessoryEditProject {
                     );
 
                     ui.horizontal(|ui| {
-                        ui.add(egui::Slider::new(&mut self.bald_center.x, -2.0..=2.0));
-                        ui.add(egui::Slider::new(&mut self.bald_center.y, -2.0..=2.0));
-                        ui.add(egui::Slider::new(&mut self.bald_center.z, -2.0..=2.0));
+                        let mut slider_changed = false;
+                        slider_changed = ui.add(egui::Slider::new(&mut self.bald_center.x, -2.0..=2.0)).changed() || slider_changed;
+                        slider_changed = ui.add(egui::Slider::new(&mut self.bald_center.y, -2.0..=2.0)).changed() || slider_changed;
+                        slider_changed = ui.add(egui::Slider::new(&mut self.bald_center.z, -2.0..=2.0)).changed() || slider_changed;
+
+                        if slider_changed {
+                            changed |= CHANGED_ALL;
+                        }
                     });
 
                     tooltip_helper(
@@ -456,9 +503,14 @@ impl Project for AccessoryEditProject {
                     );
 
                     ui.horizontal(|ui| {
-                        ui.add(egui::Slider::new(&mut self.bald_influence.x, 0.0..=1.0));
-                        ui.add(egui::Slider::new(&mut self.bald_influence.y, 0.0..=1.0));
-                        ui.add(egui::Slider::new(&mut self.bald_influence.z, 0.0..=1.0));
+                        let mut slider_changed = false;
+                        slider_changed = ui.add(egui::Slider::new(&mut self.bald_influence.x, 0.0..=1.0)).changed() || slider_changed;
+                        slider_changed = ui.add(egui::Slider::new(&mut self.bald_influence.y, 0.0..=1.0)).changed() || slider_changed;
+                        slider_changed = ui.add(egui::Slider::new(&mut self.bald_influence.z, 0.0..=1.0)).changed() || slider_changed;
+
+                        if slider_changed {
+                            changed |= CHANGED_ALL;
+                        }
                     });
 
                     tooltip_helper(
@@ -473,12 +525,16 @@ impl Project for AccessoryEditProject {
                         },
                     );
 
-                    ui.add(egui::Slider::new(&mut self.bald_radius, 0.0..=10.0));
+                    if ui.add(egui::Slider::new(&mut self.bald_radius, 0.0..=10.0)).changed() {
+                        changed |= CHANGED_ALL;
+                    }
 
                     tooltip_helper(
                         ui,
                         |ui| {
-                            ui.add(egui::Checkbox::new(&mut self.bald_clip_face, "Clip Face"));
+                            if ui.checkbox(&mut self.bald_clip_face, "Clip Face").changed() {
+                                changed |= CHANGED_ALL;
+                            }
                         },
                         |ui| {
                             ui.label("Enabling this leaves the face unaffected by the fitting.");
@@ -498,31 +554,46 @@ impl Project for AccessoryEditProject {
                                 );
                                 self.bald_radius = BALD_DEFAULT_RADIUS;
                                 self.bald_dont_hide_hparts = false;
+
+                                changed |= CHANGED_ALL;
                             }
                         },
                         |ui| {
                             ui.label("Resets the parameters to default. (these are the same values that the \"Presets\" mode uses)");
                         },
                     );
-
-                    self.check_update();
                 });
             }
         };
 
-        ui.checkbox(&mut self.disable_jiggle, "Disable Jiggle");
+        if ui
+            .checkbox(&mut self.disable_jiggle, "Disable Jiggle")
+            .changed()
+        {
+            changed |= CHANGED_ALL;
+        }
 
         ui.collapsing("Market Data", |ui| {
             ui.horizontal(|ui| {
                 ui.label("Name: ");
-                ui.add(egui::TextEdit::singleline(&mut self.market_data.name));
+                if ui
+                    .add(egui::TextEdit::singleline(&mut self.market_data.name))
+                    .changed()
+                {
+                    changed |= CHANGED_ALL;
+                }
             });
 
             ui.horizontal(|ui| {
                 ui.label("Description: ");
-                ui.add(egui::TextEdit::singleline(
-                    &mut self.market_data.description,
-                ));
+                if ui
+                    .add(egui::TextEdit::singleline(
+                        &mut self.market_data.description,
+                    ))
+                    .changed()
+                {
+                    changed |= CHANGED_ALL;
+                }
             });
 
             let mut num_str = self.market_data.price.to_string();
@@ -532,6 +603,7 @@ impl Project for AccessoryEditProject {
                     // if the input value is vaild, update the value
                     if let Ok(parsed_value) = num_str.parse() {
                         self.market_data.price = parsed_value;
+                        changed |= CHANGED_ALL;
                     }
                 };
             });
@@ -543,6 +615,7 @@ impl Project for AccessoryEditProject {
                     // if the input value is vaild, update the value
                     if let Ok(parsed_value) = num_str.parse() {
                         self.market_data.sale = parsed_value;
+                        changed |= CHANGED_ALL;
                     }
                 };
             });
@@ -554,6 +627,7 @@ impl Project for AccessoryEditProject {
                     // if the input value is vaild, update the value
                     if let Ok(parsed_value) = num_str.parse() {
                         self.market_data.emblems = parsed_value;
+                        changed |= CHANGED_ALL;
                     }
                 };
             });
@@ -583,7 +657,7 @@ impl Project for AccessoryEditProject {
                 if ui.button("Add").clicked()
                     && !self.hide_parts.contains(&self.hide_parts_selected_num) {
                         self.hide_parts.push(self.hide_parts_selected_num);
-                        self.check_update();
+                        changed |= CHANGED_ALL;
                     }
             });
 
@@ -600,7 +674,7 @@ impl Project for AccessoryEditProject {
                     if (ui.button("Remove")).clicked() {
                         self.hide_parts
                             .remove(self.hide_parts.iter().position(|y| *y == x).unwrap());
-                        self.check_update();
+                        changed |= CHANGED_ALL;
                     }
                 });
             }
@@ -619,10 +693,10 @@ impl Project for AccessoryEditProject {
                 }
             );
 
-            ui.add(egui::Checkbox::new(
+            ui.checkbox(
                 &mut self.material_flash,
                 "Preview Selected Material",
-            ));
+            );
 
             let last_select = self.material_highlight_node_select;
             if let Some(obj) = &mut self.object {
@@ -721,6 +795,8 @@ impl Project for AccessoryEditProject {
                             ));
                             if ui.button("Remove").clicked() {
                                 self.material_slot_users.remove(&(node, material));
+
+                                changed |= CHANGED_ALL;
                             }
                         });
                     } else {
@@ -728,6 +804,8 @@ impl Project for AccessoryEditProject {
                             if ui.button("Assign").clicked() {
                                 self.material_slot_users
                                     .insert((node, material), self.selected_slot);
+
+                                changed |= CHANGED_ALL;
                             }
 
                             if ui.button("Assign All").clicked() {
@@ -748,6 +826,8 @@ impl Project for AccessoryEditProject {
                                     for i in 0..material_count {
                                         self.material_slot_users
                                             .insert((node, i), self.selected_slot);
+
+                                        changed |= CHANGED_ALL;
                                     }
                                 }
                             }
@@ -758,6 +838,8 @@ impl Project for AccessoryEditProject {
                                 .insert((node, material), self.selected_slot);
                             self.material_slots[self.selected_slot] =
                                 self.material_backup_color[&(node, material)];
+
+                            changed |= CHANGED_ALL;
                         }
                     }
                 }
@@ -778,6 +860,8 @@ impl Project for AccessoryEditProject {
                             slot.r = (rgb[0] * 255.0) as u8;
                             slot.g = (rgb[1] * 255.0) as u8;
                             slot.b = (rgb[2] * 255.0) as u8;
+
+                            changed |= CHANGED_ALL;
                         }
 
                         ui.label(format!(
@@ -796,18 +880,26 @@ impl Project for AccessoryEditProject {
 
         if let Some(data) = &self.accessory_data {
             if let Some(json_path) = &self.json_path {
-                if !self.id.is_empty() && ui.button("Save").clicked() {
-                    let json_err = data.save_json(&self.market_data, json_path);
-                    if json_err.is_err() {
-                        show_error(format!("Failed to save json: {}", json_err.err().unwrap()));
+                ui.horizontal(|ui| {
+                    if self.unsaved_changes {
+                        ui.colored_label(Color32::RED, "Unsaved changes!");
                     }
-                }
+
+                    if !self.id.is_empty() && ui.button("Save").clicked() {
+                        let json_err = data.save_json(&self.market_data, json_path);
+                        if json_err.is_err() {
+                            show_error(format!("Failed to save json: {}", json_err.err().unwrap()));
+                        } else {
+                            self.unsaved_changes = false;
+                        }
+                    }
+                });
             }
         }
-    }
-}
 
-impl AccessoryEditProject {
+        changed
+    }
+
     pub fn update_material_flash(&mut self, ctx: &egui::Context) {
         let material_flicker = ctx.input(|i| (i.time * 5.0).sin()) as f32 * 0.5 + 0.5;
 
@@ -987,6 +1079,8 @@ impl AccessoryEditProject {
             material_flash: false,
             material_highlight_node_select: None,
             material_highlight_material_select: None,
+
+            unsaved_changes: false,
         }
     }
 }

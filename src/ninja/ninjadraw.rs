@@ -265,8 +265,7 @@ impl NinjaDrawState {
             // u32s cannot be textureSample'd
             let min_mag_filter = if draw_data.pipeline_settings.use_palette {
                 wgpu::FilterMode::Nearest
-            }
-            else {
+            } else {
                 draw_data.sampler.min_mag_filter
             };
 
