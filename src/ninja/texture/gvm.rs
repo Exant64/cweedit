@@ -218,6 +218,62 @@ where
             let dds = ddsfile::Dds::read(Cursor::new(file_entry));
             if let Ok(dds_file) = dds {
                 let d3d_format = dds_file.get_d3d_format().unwrap();
+                let real_pixel_format = PixelFormat::from(d3d_format);
+
+                // we have to specially handle RGB565 and 5A3 since there's no matching WGPU format
+                // todo: the 565 and 5a3 code is dupes from palette.rs, move to some util file later on
+                fn convert_3_to_8(v: u8) -> u8 {
+                    // Swizzle bits: 00000123 -> 12312312
+                    (v << 5) | (v << 2) | (v >> 1)
+                }
+                fn convert_4_to_8(v: u8) -> u8 {
+                    // Swizzle bits: 00001234 -> 12341234
+                    (v << 4) | v
+                }
+                fn convert_6_to_8(v: u8) -> u8 {
+                    // Swizzle bits: 00123456 -> 12345612
+                    (v << 2) | (v >> 4)
+                }
+                fn convert_5_to_8(v: u8) -> u8 {
+                    // Swizzle bits: 00012345 -> 12345123
+                    (v << 3) | (v >> 2)
+                }
+                let data = match d3d_format {
+                    ddsfile::D3DFormat::A1R5G5B5 => {
+                        dds_file.data.chunks_exact(2).flat_map(|x| {
+                            let val = zerocopy::byteorder::little_endian::U16::from_bytes([x[0], x[1]]).get();
+                            
+                            let (r, g, b, a) = if (val & 0x8000) != 0 {
+                                let r = convert_5_to_8(((val >> 10) & 0x1f) as u8);
+                                let g = convert_5_to_8(((val >> 5) & 0x1f) as u8);
+                                let b = convert_5_to_8((val & 0x1f) as u8);
+                                (r, g, b, 0xFF)
+                            } else {
+                                let a = convert_3_to_8(((val >> 12) & 0x7) as u8);
+                                let r = convert_4_to_8(((val >> 8) & 0xf) as u8);
+                                let g = convert_4_to_8(((val >> 4) & 0xf) as u8);
+                                let b = convert_4_to_8((val & 0xf) as u8);
+                                (r, g, b, a)
+                            };
+
+                            [r,g,b,a]
+                        }).collect()
+                    }
+                    ddsfile::D3DFormat::R5G6B5 => {
+                        dds_file.data.chunks_exact(2).flat_map(|x| {
+                            let val = zerocopy::byteorder::little_endian::U16::from_bytes([x[0], x[1]]).get();
+                            
+                            let r = convert_5_to_8(((val >> 11) & 0x1f) as u8);
+                            let g = convert_6_to_8(((val >> 5) & 0x3f) as u8);
+                            let b = convert_5_to_8((val & 0x1f) as u8);
+                            let a = 0xFF;
+
+                            [r,g,b,a]
+                        }).collect()
+                    }
+                    _ => dds_file.data
+                };
+
                 tex_entry = NinjaTex {
                     width: width as u16,
                     height: height as u16,
@@ -228,8 +284,8 @@ where
                     } else {
                         PixelFormat::from(pixel_format as u8)
                     },
-                    real_pixel_format: PixelFormat::from(d3d_format),
-                    data: dds_file.data,
+                    real_pixel_format,
+                    data,
                 };
             } else {
                 let img = ImageReader::new(Cursor::new(file_entry))
