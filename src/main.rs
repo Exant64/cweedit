@@ -6,6 +6,7 @@ mod chaoface;
 mod chaoparam;
 mod chaoshape;
 mod chaostate;
+mod config;
 mod drawable;
 mod genericjson;
 mod ninja;
@@ -28,9 +29,11 @@ use wgpu::{Device, Features};
 
 use eframe::egui_wgpu::{self, wgpu};
 
+use crate::config::Config;
 use crate::project::accessoryedit::AccessoryEditProject;
 
 struct GameState {
+    config: Config,
     has_update: Result<bool, self_update::errors::Error>,
     drag_angle: NinjaRotation,
     dist: f32,
@@ -244,7 +247,18 @@ impl GameState {
                 })
             });
 
+        let config = Config::init().unwrap_or_else(|error_msg| {
+            rfd::MessageDialog::new()
+                .set_level(rfd::MessageLevel::Error)
+                .set_title("Error")
+                .set_description(format!("Failed to read editor config: {}", error_msg))
+                .show();
+
+            Config::default()
+        });
+
         Self {
+            config,
             has_update,
             current_project: None,
             to_be_project: None,
