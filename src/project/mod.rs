@@ -7,6 +7,8 @@ use drawable::Drawable;
 use egui::{Color32, RichText, Ui};
 use rfd::FileDialog;
 
+use crate::config::Config;
+
 pub fn show_error(text: impl Into<String>) {
     rfd::MessageDialog::new()
         .set_title("Error")
@@ -48,7 +50,13 @@ pub fn save_file_dialog(file_name: &'static str, extensions: &[&'static str]) ->
 
 pub trait Project {
     fn open_dialog(&mut self, ctx: &egui::Context, frame: &eframe::Frame) -> Result<bool, String>;
-    fn side_panel(&mut self, ctx: &egui::Context, frame: &eframe::Frame, ui: &mut egui::Ui);
+    fn side_panel(
+        &mut self,
+        ctx: &egui::Context,
+        frame: &eframe::Frame,
+        ui: &mut egui::Ui,
+        config: &Config,
+    );
     fn request_redraw(&self) -> bool;
     fn get_drawable(&mut self) -> Option<&mut dyn Drawable>;
 }

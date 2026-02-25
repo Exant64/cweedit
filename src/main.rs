@@ -122,11 +122,20 @@ impl eframe::App for GameState {
                     }
                 });
 
-                ui.menu_button("Options", | ui| {
+                ui.menu_button("Options", |ui| {
                     let mut changed_config = false;
 
-                    changed_config = ui.checkbox(&mut self.config.auto_save, "Autosave").changed() || changed_config;
-                    changed_config = ui.checkbox(&mut self.config.auto_load_found_texture, "Always load automatically detected PAK from gd_PC/PRS").changed() || changed_config;
+                    changed_config = ui
+                        .checkbox(&mut self.config.auto_save, "Autosave")
+                        .changed()
+                        || changed_config;
+                    changed_config = ui
+                        .checkbox(
+                            &mut self.config.auto_load_found_texture,
+                            "Always load automatically detected PAK from gd_PC/PRS",
+                        )
+                        .changed()
+                        || changed_config;
 
                     if changed_config {
                         self.config.save_config();
@@ -156,7 +165,7 @@ impl eframe::App for GameState {
         egui::SidePanel::left("side_panel").show_animated(ctx, true, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 if let Some(proj) = &mut self.current_project {
-                    proj.side_panel(ctx, frame, ui);
+                    proj.side_panel(ctx, frame, ui, &self.config);
                 }
             });
         });

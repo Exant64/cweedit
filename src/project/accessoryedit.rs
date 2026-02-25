@@ -10,6 +10,7 @@ use crate::{
         BALD_DEFAULT_CENTER, BALD_DEFAULT_CLIP_FACE, BALD_DEFAULT_INFLUENCE, BALD_DEFAULT_RADIUS,
     },
     chaostate::ChaoGlobalState,
+    config::Config,
     genericjson::MarketData,
     ninja::{
         math::Color, modelfile::NinjaChunkObject, polychunk::PolyChunk, texlist::NinjaGpuTexEntry,
@@ -151,15 +152,39 @@ impl Project for AccessoryEditProject {
         }
     }
 
-    fn side_panel(&mut self, ctx: &egui::Context, frame: &eframe::Frame, ui: &mut egui::Ui) {
-        let changed = self.panel_elements(ctx, frame, ui);
-
-        if (changed & CHANGED_FILE) != 0 {
-            self.unsaved_changes = true;
-        }
+    fn side_panel(
+        &mut self,
+        ctx: &egui::Context,
+        frame: &eframe::Frame,
+        ui: &mut egui::Ui,
+        config: &Config,
+    ) {
+        let changed = self.panel_elements(ctx, frame, ui, config);
 
         if (changed & CHANGED_VISUAL) != 0 {
             self.check_update();
+        }
+
+        if (changed & CHANGED_FILE) != 0 {
+            if !config.auto_save {
+                self.unsaved_changes = true;
+            } else {
+                if let Some(data) = &self.accessory_data {
+                    if let Some(json_path) = &self.json_path {
+                        if !self.id.is_empty() {
+                            let json_err = data.save_json(&self.market_data, json_path);
+                            if json_err.is_err() {
+                                show_error(format!(
+                                    "Failed to save json: {}",
+                                    json_err.err().unwrap()
+                                ));
+                            } else {
+                                self.unsaved_changes = false;
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -170,6 +195,7 @@ impl AccessoryEditProject {
         ctx: &egui::Context,
         frame: &eframe::Frame,
         ui: &mut egui::Ui,
+        config: &Config,
     ) -> u32 {
         let mut changed: u32 = 0;
 
@@ -881,7 +907,9 @@ impl AccessoryEditProject {
         if let Some(data) = &self.accessory_data {
             if let Some(json_path) = &self.json_path {
                 ui.horizontal(|ui| {
-                    if self.unsaved_changes {
+                    if config.auto_save {
+                        ui.colored_label(Color32::LIGHT_GREEN, "Autosave is enabled!");
+                    } else if self.unsaved_changes {
                         ui.colored_label(Color32::RED, "Unsaved changes!");
                     }
 
