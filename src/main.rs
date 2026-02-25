@@ -81,6 +81,7 @@ impl eframe::App for GameState {
                 delete_dialog = !result;
             } else if let Err(err) = open_result {
                 rfd::MessageDialog::new()
+                    .set_level(rfd::MessageLevel::Error)
                     .set_title("Error")
                     .set_description(format!("Operation failed: {}", err))
                     .show();

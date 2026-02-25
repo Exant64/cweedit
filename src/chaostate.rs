@@ -35,6 +35,7 @@ pub struct ChaoGlobalState {
 impl ChaoGlobalState {
     fn error_dialog(desc: &String) {
         rfd::MessageDialog::new()
+            .set_level(rfd::MessageLevel::Error)
             .set_buttons(rfd::MessageButtons::Ok)
             .set_title("Error initializing the editor!")
             .set_description(desc)
