@@ -148,6 +148,8 @@ impl eframe::App for GameState {
                         .checkbox(&mut self.config.auto_save, "Autosave")
                         .changed()
                         || changed_config;
+
+                    /*
                     changed_config = ui
                         .checkbox(
                             &mut self.config.auto_load_found_texture,
@@ -155,6 +157,7 @@ impl eframe::App for GameState {
                         )
                         .changed()
                         || changed_config;
+                    */
 
                     if changed_config {
                         self.config.save_config();
