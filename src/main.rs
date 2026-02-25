@@ -46,24 +46,6 @@ struct GameState {
 impl eframe::App for GameState {
     fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
         ctx.input(|i| {
-            if i.viewport().close_requested() {
-                if let Some(project) = &self.current_project {
-                    if project.unsaved_changes() {
-                        let diag_result = rfd::MessageDialog::new()
-                            .set_buttons(rfd::MessageButtons::YesNo)
-                            .set_title("Quit")
-                            .set_description(
-                                "Are you sure you want to exit? You have unsaved changes.",
-                            )
-                            .show();
-
-                        if diag_result == rfd::MessageDialogResult::No {
-                            ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
-                        }
-                    }
-                }
-            }
-
             for e in &i.events {
                 match e {
                     Event::Key {
@@ -89,6 +71,25 @@ impl eframe::App for GameState {
                 }
             }
         });
+
+        // putting this logic in the input callback causes the app to totally hang
+        let close_requested = ctx.input(|i| i.viewport().close_requested());
+
+        if close_requested {
+            if let Some(project) = &self.current_project {
+                if project.unsaved_changes() {
+                    let diag_result = rfd::MessageDialog::new()
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .set_title("Quit")
+                        .set_description("Are you sure you want to exit? You have unsaved changes.")
+                        .show();
+
+                    if diag_result == rfd::MessageDialogResult::No {
+                        ctx.send_viewport_cmd(egui::ViewportCommand::CancelClose);
+                    }
+                }
+            }
+        }
 
         self.render(&frame.wgpu_render_state().unwrap().device);
 

@@ -239,10 +239,14 @@ where
                     (v << 3) | (v >> 2)
                 }
                 let data = match d3d_format {
-                    ddsfile::D3DFormat::A1R5G5B5 => {
-                        dds_file.data.chunks_exact(2).flat_map(|x| {
-                            let val = zerocopy::byteorder::little_endian::U16::from_bytes([x[0], x[1]]).get();
-                            
+                    ddsfile::D3DFormat::A1R5G5B5 => dds_file
+                        .data
+                        .chunks_exact(2)
+                        .flat_map(|x| {
+                            let val =
+                                zerocopy::byteorder::little_endian::U16::from_bytes([x[0], x[1]])
+                                    .get();
+
                             let (r, g, b, a) = if (val & 0x8000) != 0 {
                                 let r = convert_5_to_8(((val >> 10) & 0x1f) as u8);
                                 let g = convert_5_to_8(((val >> 5) & 0x1f) as u8);
@@ -256,22 +260,26 @@ where
                                 (r, g, b, a)
                             };
 
-                            [r,g,b,a]
-                        }).collect()
-                    }
-                    ddsfile::D3DFormat::R5G6B5 => {
-                        dds_file.data.chunks_exact(2).flat_map(|x| {
-                            let val = zerocopy::byteorder::little_endian::U16::from_bytes([x[0], x[1]]).get();
-                            
+                            [r, g, b, a]
+                        })
+                        .collect(),
+                    ddsfile::D3DFormat::R5G6B5 => dds_file
+                        .data
+                        .chunks_exact(2)
+                        .flat_map(|x| {
+                            let val =
+                                zerocopy::byteorder::little_endian::U16::from_bytes([x[0], x[1]])
+                                    .get();
+
                             let r = convert_5_to_8(((val >> 11) & 0x1f) as u8);
                             let g = convert_6_to_8(((val >> 5) & 0x3f) as u8);
                             let b = convert_5_to_8((val & 0x1f) as u8);
                             let a = 0xFF;
 
-                            [r,g,b,a]
-                        }).collect()
-                    }
-                    _ => dds_file.data
+                            [r, g, b, a]
+                        })
+                        .collect(),
+                    _ => dds_file.data,
                 };
 
                 tex_entry = NinjaTex {
