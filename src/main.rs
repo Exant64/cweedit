@@ -122,6 +122,17 @@ impl eframe::App for GameState {
                     }
                 });
 
+                ui.menu_button("Options", | ui| {
+                    let mut changed_config = false;
+
+                    changed_config = ui.checkbox(&mut self.config.auto_save, "Autosave").changed() || changed_config;
+                    changed_config = ui.checkbox(&mut self.config.auto_load_found_texture, "Always load automatically detected PAK from gd_PC/PRS").changed() || changed_config;
+
+                    if changed_config {
+                        self.config.save_config();
+                    }
+                });
+
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     if let Ok(has_update) = self.has_update {
                         if has_update {

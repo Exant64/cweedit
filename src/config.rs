@@ -5,11 +5,11 @@ use serde_json::{json, Value};
 const CONFIG_FILE_PATH: &'static str = "config.json";
 
 pub struct Config {
-    auto_save: bool,
-    auto_load_found_texture: bool,
+    pub auto_save: bool,
+    pub auto_load_found_texture: bool,
 
-    last_object_folder: Option<PathBuf>,
-    last_texture_folder: Option<PathBuf>,
+    pub last_object_folder: Option<PathBuf>,
+    pub last_texture_folder: Option<PathBuf>,
 }
 
 impl Default for Config {
