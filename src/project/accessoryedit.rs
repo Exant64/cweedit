@@ -68,6 +68,10 @@ pub struct AccessoryEditProject {
 }
 
 impl Project for AccessoryEditProject {
+    fn unsaved_changes(&self) -> bool {
+        self.unsaved_changes
+    }
+
     fn request_redraw(&self) -> bool {
         self.material_flash || self.chao_draw.refresh_every_frame()
     }
