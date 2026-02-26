@@ -316,6 +316,10 @@ impl AccessoryEditProject {
                 }),
             );
 
+            if let Some(path) = self.object_path.as_ref().and_then(|x| x.file_name()).and_then(|x| x.to_str()) {
+                ui.label(path);
+            }
+
             if ui.button("Select").clicked() {
                 if let Some(json_path) = &self.json_path {
                     if let Some(picked) = open_file_dialog("SA2MDL file", &["sa2mdl"]) {
@@ -358,6 +362,10 @@ impl AccessoryEditProject {
                     egui::Color32::from_rgb(50, 255, 50)
                 }),
             );
+
+            if let Some(path) = &self.texture_name {
+                ui.label(path);
+            }
 
             if ui.button("Select").clicked() {
                 // disgusting nest
