@@ -165,24 +165,16 @@ impl AccessoryData {
     }
 
     fn try_find_pak(json_path: &Path, pak_name: &String) -> Option<PathBuf> {
-        let path = json_path
+        json_path
             .parent()
             .and_then(|x| x.parent())
             .and_then(|x| x.parent())
-            .and_then(|x| {
-                Some(
-                    x.join("gd_PC")
-                        .join("PRS")
-                        .join(pak_name.to_owned() + ".pak"),
-                )
+            .map(|x| {
+                x.join("gd_PC")
+                    .join("PRS")
+                    .join(pak_name.to_owned() + ".pak")
             })
-            .unwrap();
-
-        if path.exists() {
-            Some(path)
-        } else {
-            None
-        }
+            .filter(|p| p.exists())
     }
 
     pub fn read_json(

@@ -2,7 +2,7 @@ use std::path::PathBuf;
 
 use serde_json::{json, Value};
 
-const CONFIG_FILE_PATH: &'static str = "config.json";
+const CONFIG_FILE_PATH: &str = "config.json";
 
 pub struct Config {
     pub auto_save: bool,
@@ -32,30 +32,26 @@ impl Config {
         if let Ok(file_contents) = document_text {
             let document: Value = serde_json::from_str(file_contents.as_str())
                 .map_err(|err| format!("Error parsing config JSON: {}", err))?;
-            let mut config = Self::default();
 
-            config.auto_save = if let Some(auto_save) = document["auto_save"].as_bool() {
-                Ok(auto_save)
-            } else {
-                Err("configuration is not a bool!".to_string())
-            }?;
+            return Ok(Config {
+                auto_save: if let Some(auto_save) = document["auto_save"].as_bool() {
+                    Ok(auto_save)
+                } else {
+                    Err("configuration is not a bool!".to_string())
+                }?,
 
-            config.auto_load_found_texture = if let Some(auto_load_found_texture) =
-                document["auto_load_found_texture"].as_bool()
-            {
-                Ok(auto_load_found_texture)
-            } else {
-                Err("auto_load_found_texture is not a bool!".to_string())
-            }?;
+                auto_load_found_texture: if let Some(auto_load_found_texture) =
+                    document["auto_load_found_texture"].as_bool()
+                {
+                    Ok(auto_load_found_texture)
+                } else {
+                    Err("auto_load_found_texture is not a bool!".to_string())
+                }?,
 
-            config.last_object_folder = document["last_object_folder"]
-                .as_str()
-                .map(|p| PathBuf::from(p));
-            config.last_texture_folder = document["last_texture_folder"]
-                .as_str()
-                .map(|p| PathBuf::from(p));
+                last_object_folder: document["last_object_folder"].as_str().map(PathBuf::from),
 
-            return Ok(config);
+                last_texture_folder: document["last_texture_folder"].as_str().map(PathBuf::from),
+            });
         }
 
         Ok(Self::default())

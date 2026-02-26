@@ -178,19 +178,14 @@ impl Project for AccessoryEditProject {
         if (changed & CHANGED_FILE) != 0 {
             if !config.auto_save {
                 self.unsaved_changes = true;
-            } else {
-                if let Some(data) = &self.accessory_data {
-                    if let Some(json_path) = &self.json_path {
-                        if !self.id.is_empty() {
-                            let json_err = data.save_json(&self.market_data, json_path);
-                            if json_err.is_err() {
-                                show_error(format!(
-                                    "Failed to save json: {}",
-                                    json_err.err().unwrap()
-                                ));
-                            } else {
-                                self.unsaved_changes = false;
-                            }
+            } else if let Some(data) = &self.accessory_data {
+                if let Some(json_path) = &self.json_path {
+                    if !self.id.is_empty() {
+                        let json_err = data.save_json(&self.market_data, json_path);
+                        if json_err.is_err() {
+                            show_error(format!("Failed to save json: {}", json_err.err().unwrap()));
+                        } else {
+                            self.unsaved_changes = false;
                         }
                     }
                 }
