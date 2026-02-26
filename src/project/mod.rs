@@ -1,7 +1,7 @@
 pub mod accessoryedit;
 pub mod drawable;
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use drawable::Drawable;
 use egui::{Color32, RichText, Ui};
@@ -34,11 +34,21 @@ pub fn tooltip_helper(
     });
 }
 
-pub fn open_file_dialog(file_name: &'static str, extensions: &[&'static str]) -> Option<PathBuf> {
-    FileDialog::new()
+pub fn open_file_dialog(
+    file_name: &'static str,
+    extensions: &[&'static str],
+    starting_dir: Option<&Path>,
+) -> Option<PathBuf> {
+    let diag = FileDialog::new()
         .set_title(file_name)
-        .add_filter(file_name, extensions)
-        .pick_file()
+        .add_filter(file_name, extensions);
+
+    if let Some(dir) = starting_dir {
+        diag.set_directory(dir)
+    } else {
+        diag
+    }
+    .pick_file()
 }
 
 pub fn save_file_dialog(file_name: &'static str, extensions: &[&'static str]) -> Option<PathBuf> {
@@ -54,14 +64,14 @@ pub trait Project {
         &mut self,
         ctx: &egui::Context,
         frame: &eframe::Frame,
-        config: &Config,
+        config: &mut Config,
     ) -> Result<bool, String>;
     fn side_panel(
         &mut self,
         ctx: &egui::Context,
         frame: &eframe::Frame,
         ui: &mut egui::Ui,
-        config: &Config,
+        config: &mut Config,
     );
     fn request_redraw(&self) -> bool;
     fn get_drawable(&mut self) -> Option<&mut dyn Drawable>;

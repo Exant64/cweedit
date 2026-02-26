@@ -84,14 +84,14 @@ impl Project for AccessoryEditProject {
         &mut self,
         ctx: &egui::Context,
         frame: &eframe::Frame,
-        config: &Config,
+        config: &mut Config,
     ) -> Result<bool, String> {
         if self.json_path.is_some() {
             return Ok(true);
         }
 
         if !self.open_or_save {
-            let dialog_result = open_file_dialog("Accessory JSON file", &["json"]);
+            let dialog_result = open_file_dialog("Accessory JSON file", &["json"], None);
             if dialog_result.is_none() {
                 return Ok(false);
             }
@@ -167,7 +167,7 @@ impl Project for AccessoryEditProject {
         ctx: &egui::Context,
         frame: &eframe::Frame,
         ui: &mut egui::Ui,
-        config: &Config,
+        config: &mut Config,
     ) {
         let changed = self.panel_elements(ctx, frame, ui, config);
 
@@ -200,7 +200,7 @@ impl AccessoryEditProject {
         ctx: &egui::Context,
         frame: &eframe::Frame,
         ui: &mut egui::Ui,
-        config: &Config,
+        config: &mut Config,
     ) -> u32 {
         let mut changed: u32 = 0;
 
@@ -316,13 +316,24 @@ impl AccessoryEditProject {
                 }),
             );
 
-            if let Some(path) = self.object_path.as_ref().and_then(|x| x.file_name()).and_then(|x| x.to_str()) {
+            if let Some(path) = self
+                .object_path
+                .as_ref()
+                .and_then(|x| x.file_name())
+                .and_then(|x| x.to_str())
+            {
                 ui.label(path);
             }
 
             if ui.button("Select").clicked() {
                 if let Some(json_path) = &self.json_path {
-                    if let Some(picked) = open_file_dialog("SA2MDL file", &["sa2mdl"]) {
+                    if let Some(picked) = open_file_dialog(
+                        "SA2MDL file",
+                        &["sa2mdl"],
+                        config.last_object_folder.as_ref().map(|p| p.as_path()),
+                    ) {
+                        config.last_object_folder = picked.parent().map(PathBuf::from);
+
                         if let Err(str) = AccessoryData::safety_check_object_path_before_save(
                             picked.as_path(),
                             json_path.as_path(),
@@ -369,7 +380,13 @@ impl AccessoryEditProject {
 
             if ui.button("Select").clicked() {
                 // disgusting nest
-                if let Some(path) = open_file_dialog("Texture file", &["pak", "gvm"]) {
+                if let Some(path) = open_file_dialog(
+                    "Texture file",
+                    &["pak", "gvm"],
+                    config.last_texture_folder.as_ref().map(|p| p.as_path()),
+                ) {
+                    config.last_texture_folder = path.parent().map(PathBuf::from);
+
                     if let Some(tex_state) = frame.wgpu_render_state() {
                         if let Some(path_file_name) = path.file_stem() {
                             if let Some(path_str) = path_file_name.to_str() {

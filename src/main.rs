@@ -95,7 +95,7 @@ impl eframe::App for GameState {
 
         let mut delete_dialog = false;
         if let Some(proj) = &mut self.to_be_project {
-            let open_result = proj.open_dialog(ctx, frame, &self.config);
+            let open_result = proj.open_dialog(ctx, frame, &mut self.config);
             if let Ok(result) = open_result {
                 delete_dialog = !result;
             } else if let Err(err) = open_result {
@@ -185,7 +185,7 @@ impl eframe::App for GameState {
         egui::SidePanel::left("side_panel").show_animated(ctx, true, |ui| {
             egui::ScrollArea::vertical().show(ui, |ui| {
                 if let Some(proj) = &mut self.current_project {
-                    proj.side_panel(ctx, frame, ui, &self.config);
+                    proj.side_panel(ctx, frame, ui, &mut self.config);
                 }
             });
         });
