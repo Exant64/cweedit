@@ -50,7 +50,12 @@ pub fn save_file_dialog(file_name: &'static str, extensions: &[&'static str]) ->
 
 pub trait Project {
     fn unsaved_changes(&self) -> bool;
-    fn open_dialog(&mut self, ctx: &egui::Context, frame: &eframe::Frame) -> Result<bool, String>;
+    fn open_dialog(
+        &mut self,
+        ctx: &egui::Context,
+        frame: &eframe::Frame,
+        config: &Config,
+    ) -> Result<bool, String>;
     fn side_panel(
         &mut self,
         ctx: &egui::Context,

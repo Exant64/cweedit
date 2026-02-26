@@ -80,7 +80,12 @@ impl Project for AccessoryEditProject {
         Some(&mut self.chao_draw)
     }
 
-    fn open_dialog(&mut self, ctx: &egui::Context, frame: &eframe::Frame) -> Result<bool, String> {
+    fn open_dialog(
+        &mut self,
+        ctx: &egui::Context,
+        frame: &eframe::Frame,
+        config: &Config,
+    ) -> Result<bool, String> {
         if self.json_path.is_some() {
             return Ok(true);
         }
@@ -92,7 +97,8 @@ impl Project for AccessoryEditProject {
             }
             let path = dialog_result.unwrap();
 
-            let (accessory_data, market_data) = AccessoryData::read_json(ctx, frame, &path)?;
+            let (accessory_data, market_data) =
+                AccessoryData::read_json(ctx, frame, &path, config)?;
 
             self.id = accessory_data.id;
             self.object_path = accessory_data.object_path;

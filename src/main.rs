@@ -95,7 +95,7 @@ impl eframe::App for GameState {
 
         let mut delete_dialog = false;
         if let Some(proj) = &mut self.to_be_project {
-            let open_result = proj.open_dialog(ctx, frame);
+            let open_result = proj.open_dialog(ctx, frame, &self.config);
             if let Ok(result) = open_result {
                 delete_dialog = !result;
             } else if let Err(err) = open_result {
@@ -149,7 +149,6 @@ impl eframe::App for GameState {
                         .changed()
                         || changed_config;
 
-                    /*
                     changed_config = ui
                         .checkbox(
                             &mut self.config.auto_load_found_texture,
@@ -157,7 +156,6 @@ impl eframe::App for GameState {
                         )
                         .changed()
                         || changed_config;
-                    */
 
                     if changed_config {
                         self.config.save_config();

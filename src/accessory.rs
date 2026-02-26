@@ -1,6 +1,7 @@
 use crate::chao::{
     BALD_DEFAULT_CENTER, BALD_DEFAULT_CLIP_FACE, BALD_DEFAULT_INFLUENCE, BALD_DEFAULT_RADIUS,
 };
+use crate::config::Config;
 use crate::genericjson::MarketData;
 use crate::ninja::math::Color;
 use crate::ninja::modelfile::NinjaChunkObject;
@@ -163,12 +164,34 @@ impl AccessoryData {
         Ok(())
     }
 
+    fn try_find_pak(json_path: &Path, pak_name: &String) -> Option<PathBuf> {
+        let path = json_path
+            .parent()
+            .and_then(|x| x.parent())
+            .and_then(|x| x.parent())
+            .and_then(|x| {
+                Some(
+                    x.join("gd_PC")
+                        .join("PRS")
+                        .join(pak_name.to_owned() + ".pak"),
+                )
+            })
+            .unwrap();
+
+        if path.exists() {
+            Some(path)
+        } else {
+            None
+        }
+    }
+
     pub fn read_json(
         _: &egui::Context,
         frame: &eframe::Frame,
-        path: &Path,
+        json_path: &Path,
+        config: &Config,
     ) -> std::result::Result<(Self, MarketData), String> {
-        let parent = path
+        let parent = json_path
             .parent()
             .ok_or("Couldn't retrieve parent path of json file".to_string())?;
         if !parent.ends_with("CWE/Accessories") {
@@ -176,7 +199,7 @@ impl AccessoryData {
         }
 
         let document_text =
-            std::fs::read_to_string(path).or(Err("Failed to read JSON file!".to_string()))?;
+            std::fs::read_to_string(json_path).or(Err("Failed to read JSON file!".to_string()))?;
         let document: Value =
             serde_json::from_str(document_text.as_str()).map_err(|f| f.to_string())?;
 
@@ -206,8 +229,31 @@ impl AccessoryData {
         let (texlist, texture_path) = if let Some(path) = document["texture"].as_str() {
             let file_name = format!("Find {} texture file", path);
 
-            let mut final_path = path.to_string();
-            if let Some(pathbuf) = FileDialog::new()
+            let try_find_result = Self::try_find_pak(json_path, &path.into());
+
+            let use_found_result = if let Some(found_tex) = try_find_result {
+                if config.auto_load_found_texture {
+                    Some(found_tex)
+                } else {
+                    let diag_result = rfd::MessageDialog::new()
+                        .set_buttons(rfd::MessageButtons::YesNo)
+                        .set_title("Loading Accessory")
+                        .set_description(format!("Automatically found texture {} in gd_PC/PRS folder. Do you want to load it?", path))
+                        .show();
+
+                    if diag_result == MessageDialogResult::No {
+                        None
+                    } else {
+                        Some(found_tex)
+                    }
+                }
+            } else {
+                None
+            };
+
+            let (tex_name, tex_path) = if let Some(found_tex) = use_found_result {
+                Ok((path.to_string(), found_tex))
+            } else if let Some(pathbuf) = FileDialog::new()
                 .set_title(&file_name)
                 .add_filter(file_name, &["pak"])
                 .pick_file()
@@ -221,27 +267,29 @@ impl AccessoryData {
                             .show();
 
                         if diag_result == MessageDialogResult::No {
-                            return Err("".into());
+                            return Err("canelling accessory load due to user choice".into());
                         }
-
-                        final_path = stem_str.to_string();
                     }
-                }
 
-                Ok((
-                    NinjaTexlist::load_tex(
-                        frame
-                            .wgpu_render_state()
-                            .ok_or("Failed to get wgpu_render_state!")?,
-                        &pathbuf,
-                    )
-                    .map_err(|e| format!("Texture failed to load! {:#?}", e))?
-                    .into(),
-                    final_path,
-                ))
+                    Ok((stem_str.to_string(), pathbuf))
+                } else {
+                    Ok((path.to_string(), pathbuf))
+                }
             } else {
                 Err("Texture not chosen!")
-            }
+            }?;
+
+            Ok((
+                NinjaTexlist::load_tex(
+                    frame
+                        .wgpu_render_state()
+                        .ok_or("Failed to get wgpu_render_state!")?,
+                    &tex_path,
+                )
+                .map_err(|e| format!("Texture failed to load! {:#?}", e))?
+                .into(),
+                tex_name,
+            ))
         } else {
             Err("No texture specified!")
         }?;
