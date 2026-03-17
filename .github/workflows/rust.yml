@@ -1,0 +1,82 @@
+name: Rust
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  build:
+    name: Build (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Build
+      run: cargo build --release --verbose
+
+    - name: Run tests
+      run: cargo test --verbose
+
+    - name: Package binary
+      if: startsWith(github.ref, 'refs/tags/')
+      shell: bash
+      run: |
+        mkdir dist dist/res
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          cp target/release/*.exe dist/
+        else
+          cp target/release/* dist/ || true
+        fi
+
+        cp -r res dist/res
+        
+        cd dist
+        zip -r ../cweedit-${{ matrix.os }}.zip .
+        cd ..
+
+    - name: Upload artifact
+      if: startsWith(github.ref, 'refs/tags/')
+      uses: actions/upload-artifact@v4
+      with:
+        name: cweedit-${{ matrix.os }}
+        path: cweedit-${{ matrix.os }}.zip
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+
+    if: startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Extract version from Cargo.toml
+      id: version
+      run: |
+        VERSION=$(grep '^version' Cargo.toml | head -n1 | cut -d '"' -f2)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v2
+      with:
+        draft: true
+        tag_name: ${{ github.ref_name }}
+        name: ${{ steps.version.outputs.version }}
+        generate_release_notes: true
+        files: |
+          **/*.zip
