@@ -42,7 +42,7 @@ jobs:
 
         cp -r res dist/
         
-        tar -a -c -f cweedit-${{ matrix.os }}.zip dist
+        tar --format=zip -c -f cweedit-${{ matrix.os }}.zip -C dist .
 
     - name: Upload artifact
       if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
