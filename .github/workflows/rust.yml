@@ -41,8 +41,11 @@ jobs:
         fi
 
         cp -r res dist/
-        
-        tar --format=zip -c -f cweedit-${{ matrix.os }}.zip -C dist .
+        if [[ "$RUNNER_OS" == "Windows" ]]; then
+          powershell -Command "Compress-Archive -Path dist/* -DestinationPath cweedit-${{ matrix.os }}.zip"
+        else
+          tar -czf cweedit-${{ matrix.os }}.tar.gz -C dist .
+        fi
 
     - name: Upload artifact
       if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
