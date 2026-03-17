@@ -52,7 +52,9 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: cweedit-${{ matrix.os }}
-        path: cweedit-${{ matrix.os }}.zip
+        path: |
+          cweedit-${{ matrix.os }}.zip
+          cweedit-${{ matrix.os }}.tar.gz
 
   release:
     name: Create Release
@@ -86,3 +88,4 @@ jobs:
         name: ${{ steps.version.outputs.version }}
         files: |
           **/*.zip
+          **/*.tar.gz
