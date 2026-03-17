@@ -76,6 +76,5 @@ jobs:
         draft: true
         tag_name: ${{ github.ref_name }}
         name: ${{ steps.version.outputs.version }}
-        generate_release_notes: true
         files: |
           **/*.zip
