@@ -40,11 +40,9 @@ jobs:
           cp target/release/* dist/ || true
         fi
 
-        cp -r res dist/res
+        cp -r res dist/
         
-        cd dist
-        zip -r ../cweedit-${{ matrix.os }}.zip .
-        cd ..
+        tar -a -c -f cweedit-${{ matrix.os }}.zip dist
 
     - name: Upload artifact
       if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
